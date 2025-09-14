@@ -76,6 +76,10 @@ function App() {
     date: today,
     role: '',
     propertyType: '',
+    ownerPurchaserName: '',
+    landlordTenantName: '',
+    inspectionDate: today,
+    inspectionTime: new Date().toTimeString().slice(0, 5),
   });
   const [formTouched, setFormTouched] = useState({});
 
@@ -200,84 +204,204 @@ function App() {
       setSubmitError('Please fill in all required fields.');
       return;
     }
-    // Optionally: require at least one inventory item or photo
-    // if (showInventory && !Object.values(inventory).some(room => Object.values(room || {}).some(i => i.checked))) {
-    //   setSubmitError('Please check at least one inventory item.');
-    //   return;
-    // }
     setGenerating(true);
     try {
       const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-      let y = 40;
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      
+      // Header with gradient-like effect
+      doc.setFillColor(188, 158, 123);
+      doc.rect(0, 0, pageWidth, 80, 'F');
+      
+      // Title
+      doc.setTextColor(255, 255, 255);
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(22);
-      doc.text('Property Handover Report', 40, y);
-      y += 30;
-      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(24);
+      doc.text('PROPERTY HANDOVER REPORT', 40, 35);
+      
+      // Subtitle
       doc.setFontSize(12);
-      doc.text(`Date: ${form.date}`, 40, y);
-      y += 20;
-      doc.text(`Salesperson: ${form.name}`, 40, y);
-      y += 18;
-      doc.text(`CEA Reg. No.: ${form.cea}`, 40, y);
-      y += 18;
-      doc.text(`Mobile: ${form.mobile}`, 40, y);
-      y += 18;
-      doc.text(`Property Address: ${form.address}`, 40, y, { maxWidth: 500 });
-      y += 30;
-      doc.text(`Role: ${form.role || '-'}`, 40, y);
-      y += 18;
-      doc.text(`Property Type: ${form.propertyType || '-'}`, 40, y);
-      y += 30;
-      // Inventory
+      doc.text('Professional Property Inspection & Inventory Report', 40, 55);
+      
+      // Reset text color
+      doc.setTextColor(66, 45, 42);
+      
+      let y = 120;
+      
+      // Property Information Box
+      doc.setFillColor(250, 248, 246);
+      doc.setDrawColor(188, 158, 123);
+      doc.rect(40, y, pageWidth - 80, 120, 'FD');
+      
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.text('PROPERTY INFORMATION', 50, y + 20);
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.text(`Property Address: ${form.address}`, 50, y + 40);
+      doc.text(`Property Type: ${form.propertyType || 'Not specified'}`, 50, y + 55);
+      doc.text(`Date Generated: ${form.date}`, 50, y + 70);
+      doc.text(`Inspection Date: ${form.inspectionDate}`, 50, y + 85);
+      doc.text(`Inspection Time: ${form.inspectionTime}`, 50, y + 100);
+      
+      y += 140;
+      
+      // Agent Information Box
+      doc.setFillColor(250, 248, 246);
+      doc.rect(40, y, pageWidth - 80, 100, 'FD');
+      
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.text('AGENT INFORMATION', 50, y + 20);
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.text(`Salesperson: ${form.name}`, 50, y + 40);
+      doc.text(`CEA Registration: ${form.cea}`, 50, y + 55);
+      doc.text(`Mobile: ${form.mobile}`, 50, y + 70);
+      doc.text(`Role: ${form.role || 'Not specified'}`, 50, y + 85);
+      
+      y += 120;
+      
+      // Parties Information Box
+      doc.setFillColor(250, 248, 246);
+      doc.rect(40, y, pageWidth - 80, 80, 'FD');
+      
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.text('PARTIES INVOLVED', 50, y + 20);
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.text(`Owner/Purchaser: ${form.ownerPurchaserName || 'Not specified'}`, 50, y + 40);
+      doc.text(`Landlord/Tenant: ${form.landlordTenantName || 'Not specified'}`, 50, y + 55);
+      
+      y += 100;
+      // Inventory Section
       if (['HDB', 'Condo', 'Landed'].includes(form.propertyType)) {
+        // Check if we need a new page
+        if (y > 600) {
+          doc.addPage();
+          y = 40;
+        }
+        
+        doc.setFillColor(250, 248, 246);
+        doc.rect(40, y, pageWidth - 80, 200, 'FD');
+        
         doc.setFont('helvetica', 'bold');
-        doc.text('Inventory Checklist', 40, y);
-        y += 20;
+        doc.setFontSize(14);
+        doc.text('INVENTORY CHECKLIST', 50, y + 20);
+        
         doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        let inventoryY = y + 40;
+        
         rooms.forEach(room => {
           const checkedItems = (inventory[room.key] ? Object.entries(inventory[room.key]) : []).filter(([idx, item]) => item.checked);
           if (checkedItems.length > 0) {
             doc.setFont('helvetica', 'bold');
-            doc.text(room.name, 50, y);
-            y += 16;
+            doc.text(`${room.name}:`, 50, inventoryY);
+            inventoryY += 15;
             doc.setFont('helvetica', 'normal');
             checkedItems.forEach(([idx, item]) => {
-              doc.text(`- ${room.items[idx]} (Qty: ${item.qty})`, 60, y);
-              y += 14;
+              doc.text(`✓ ${room.items[idx]} (Qty: ${item.qty})`, 60, inventoryY);
+              inventoryY += 12;
             });
-            y += 6;
+            inventoryY += 5;
           }
         });
-        y += 10;
+        
+        y += 220;
       }
-      // Photos
+      // Photos Section
       if (photos.length > 0) {
+        // Check if we need a new page
+        if (y > 500) {
+          doc.addPage();
+          y = 40;
+        }
+        
+        doc.setFillColor(250, 248, 246);
+        doc.rect(40, y, pageWidth - 80, 300, 'FD');
+        
         doc.setFont('helvetica', 'bold');
-        doc.text('Photos', 40, y);
-        y += 20;
+        doc.setFontSize(14);
+        doc.text('PHOTO DOCUMENTATION', 50, y + 20);
+        
+        let photoY = y + 40;
         for (let i = 0; i < photos.length; i++) {
           // Compress image
           let imgData = photos[i].url;
           try {
             const file = await fetch(imgData).then(r => r.blob());
-            const compressed = await imageCompression(file, { maxWidthOrHeight: 600, maxSizeMB: 0.2 });
+            const compressed = await imageCompression(file, { maxWidthOrHeight: 400, maxSizeMB: 0.15 });
             imgData = await imageCompression.getDataUrlFromFile(compressed);
           } catch (e) { /* fallback to original */ }
-          // Add image
-          if (y > 700) { doc.addPage(); y = 40; }
-          doc.addImage(imgData, 'JPEG', 50, y, 120, 90);
+          
+          // Add image with border
+          doc.setDrawColor(188, 158, 123);
+          doc.rect(50, photoY, 100, 75, 'S');
+          doc.addImage(imgData, 'JPEG', 50, photoY, 100, 75);
+          
+          // Add comment if exists
           if (photos[i].comment) {
             doc.setFont('helvetica', 'normal');
-            doc.text(photos[i].comment, 180, y + 20, { maxWidth: 350 });
+            doc.setFontSize(9);
+            doc.text(`Photo ${i + 1}: ${photos[i].comment}`, 160, photoY + 20, { maxWidth: 300 });
           }
-          y += 110;
+          
+          photoY += 90;
+          
+          // Check if we need more space
+          if (photoY > y + 280) {
+            break; // Stop adding photos if we run out of space
+          }
         }
+        
+        y += 320;
       }
+      
+      // Signature Section
+      if (y > 500) {
+        doc.addPage();
+        y = 40;
+      }
+      
+      doc.setFillColor(250, 248, 246);
+      doc.rect(40, y, pageWidth - 80, 150, 'FD');
+      
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.text('SIGNATURES', 50, y + 20);
+      
+      // Agent Signature Box
+      doc.setDrawColor(188, 158, 123);
+      doc.rect(50, y + 40, 200, 40, 'S');
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.text('Agent Signature', 55, y + 55);
+      doc.text(`Name: ${form.name}`, 55, y + 70);
+      doc.text(`CEA: ${form.cea}`, 55, y + 85);
+      
+      // Owner/Purchaser Signature Box
+      doc.rect(300, y + 40, 200, 40, 'S');
+      doc.text('Owner/Purchaser Signature', 305, y + 55);
+      doc.text(`Name: ${form.ownerPurchaserName || '________________'}`, 305, y + 70);
+      doc.text('Date: ________________', 305, y + 85);
+      
+      // Landlord/Tenant Signature Box
+      doc.rect(50, y + 100, 200, 40, 'S');
+      doc.text('Landlord/Tenant Signature', 55, y + 115);
+      doc.text(`Name: ${form.landlordTenantName || '________________'}`, 55, y + 130);
+      doc.text('Date: ________________', 55, y + 145);
+      
       // Footer
       doc.setFont('helvetica', 'italic');
       doc.setFontSize(10);
-      doc.text('Powered by #thepeoplesagency 2025', 40, 810);
+      doc.setTextColor(107, 81, 63);
+      doc.text('Powered by #thepeoplesagency 2025', 40, pageHeight - 20);
       // Save
       let pdfBlob = doc.output('blob');
       // If over 2MB, warn user (jsPDF does not support further compression)
@@ -407,6 +531,52 @@ function App() {
                     <option key={t} value={t}>{t}</option>
                   ))}
                 </select>
+              </label>
+            </div>
+            <div className="handover-form-group">
+              <label>
+                Owner/Purchaser Name
+                <input
+                  type="text"
+                  name="ownerPurchaserName"
+                  value={form.ownerPurchaserName}
+                  onChange={handleChange}
+                  placeholder="Enter owner or purchaser name"
+                />
+              </label>
+            </div>
+            <div className="handover-form-group">
+              <label>
+                Landlord/Tenant Name
+                <input
+                  type="text"
+                  name="landlordTenantName"
+                  value={form.landlordTenantName}
+                  onChange={handleChange}
+                  placeholder="Enter landlord or tenant name"
+                />
+              </label>
+            </div>
+            <div className="handover-form-group">
+              <label>
+                Date Inspected
+                <input
+                  type="date"
+                  name="inspectionDate"
+                  value={form.inspectionDate}
+                  onChange={handleChange}
+                />
+              </label>
+            </div>
+            <div className="handover-form-group">
+              <label>
+                Time Inspected
+                <input
+                  type="time"
+                  name="inspectionTime"
+                  value={form.inspectionTime}
+                  onChange={handleChange}
+                />
               </label>
             </div>
           </form>
