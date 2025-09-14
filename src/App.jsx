@@ -305,6 +305,10 @@ function App() {
       {/* Header */}
       <header className="handover-header">
         <h1>Handover App</h1>
+        <p className="handover-intro">
+          Create professional property handover reports with inventory tracking and photo documentation. 
+          Perfect for HDB, Condo, and Landed properties in Singapore.
+        </p>
       </header>
 
       {/* Main Content */}
