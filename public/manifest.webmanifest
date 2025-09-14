@@ -1,0 +1,21 @@
+{
+  "name": "Handover App",
+  "short_name": "Handover",
+  "description": "A mobile-friendly, installable web app for property handover reports.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#f8f6f4",
+  "theme_color": "#bc9e7b",
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "sizes": "120x120",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "48x48",
+      "type": "image/svg+xml"
+    }
+  ]
+}
