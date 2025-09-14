@@ -1,6 +1,73 @@
 <svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="120" height="120" rx="24" fill="#fff"/>
-  <path d="M20 60L60 30L100 60V100C100 102.209 98.2091 104 96 104H24C21.7909 104 20 102.209 20 100V60Z" stroke="#bc9e7b" stroke-width="5" fill="#fff"/>
-  <path d="M40 80C40 77 44 77 44 80C44 83 48 83 48 80C48 77 52 77 52 80C52 83 56 83 56 80C56 77 60 77 60 80C60 83 64 83 64 80C64 77 68 77 68 80C68 83 72 83 72 80C72 77 76 77 76 80" stroke="#bc9e7b" stroke-width="3" stroke-linecap="round"/>
-  <path d="M44 80L48 84C49.5 85.5 52.5 85.5 54 84L60 78L66 84C67.5 85.5 70.5 85.5 72 84L76 80" stroke="#422d2a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <defs>
+    <!-- Main gradient for the house -->
+    <linearGradient id="houseGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#bc9e7b;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#d4af8c;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#936f45;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Handshake gradient -->
+    <linearGradient id="handshakeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#422d2a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#6b513f;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Background glow -->
+    <radialGradient id="glowGradient" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#bc9e7b;stop-opacity:0.2" />
+      <stop offset="100%" style="stop-color:#bc9e7b;stop-opacity:0" />
+    </radialGradient>
+    
+    <!-- Shadow filter -->
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#422d2a" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  
+  <!-- Background glow -->
+  <circle cx="60" cy="60" r="55" fill="url(#glowGradient)"/>
+  
+  <!-- House structure with gradient -->
+  <path d="M20 70L60 35L100 70V100C100 102.209 98.2091 104 96 104H24C21.7909 104 20 102.209 20 100V70Z" 
+        fill="url(#houseGradient)" 
+        stroke="#422d2a" 
+        stroke-width="2" 
+        filter="url(#shadow)"/>
+  
+  <!-- House door -->
+  <rect x="50" y="80" width="20" height="24" fill="#422d2a" rx="2"/>
+  <circle cx="65" cy="92" r="1.5" fill="#bc9e7b"/>
+  
+  <!-- Windows -->
+  <rect x="35" y="75" width="8" height="8" fill="#422d2a" rx="1"/>
+  <rect x="77" y="75" width="8" height="8" fill="#422d2a" rx="1"/>
+  
+  <!-- Handshake inside house -->
+  <g transform="translate(60, 85)">
+    <!-- Left hand -->
+    <path d="M-8 0C-8 -2 -6 -4 -4 -4C-2 -4 0 -2 0 0C0 2 2 4 4 4C6 4 8 2 8 0" 
+          stroke="url(#handshakeGradient)" 
+          stroke-width="2.5" 
+          fill="none" 
+          stroke-linecap="round"/>
+    
+    <!-- Right hand -->
+    <path d="M8 0C8 -2 6 -4 4 -4C2 -4 0 -2 0 0C0 2 -2 4 -4 4C-6 4 -8 2 -8 0" 
+          stroke="url(#handshakeGradient)" 
+          stroke-width="2.5" 
+          fill="none" 
+          stroke-linecap="round"/>
+    
+    <!-- Connection line -->
+    <path d="M-6 0L6 0" 
+          stroke="url(#handshakeGradient)" 
+          stroke-width="2" 
+          stroke-linecap="round"/>
+  </g>
+  
+  <!-- Decorative elements -->
+  <circle cx="30" cy="45" r="2" fill="#bc9e7b" opacity="0.6"/>
+  <circle cx="90" cy="50" r="1.5" fill="#d4af8c" opacity="0.7"/>
+  <circle cx="25" cy="85" r="1" fill="#936f45" opacity="0.5"/>
 </svg>
