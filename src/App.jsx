@@ -715,7 +715,7 @@ function App() {
 
       {/* Footer */}
       <footer className="handover-footer">
-        Courtesy brought to you by #thepeoplesagency 7 Powered by Team Mindlink @2025
+        Powered by #thepeoplesagency 2025
       </footer>
     </div>
   );
