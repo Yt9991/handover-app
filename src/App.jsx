@@ -1,6 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import jsPDF from 'jspdf';
 import imageCompression from 'browser-image-compression';
+import SignaturePad from 'react-signature-canvas';
 import './App.css';
 
 const today = new Date().toISOString().slice(0, 10);
@@ -74,14 +75,34 @@ function App() {
     mobile: '',
     address: '',
     date: today,
-    role: '',
+    transactionType: '',
     propertyType: '',
-    ownerPurchaserName: '',
+    vendorPurchaserName: '',
+    purchaserName: '',
     landlordTenantName: '',
+    tenantName: '',
     inspectionDate: today,
     inspectionTime: new Date().toTimeString().slice(0, 5),
   });
   const [formTouched, setFormTouched] = useState({});
+
+  // Load agent details from local storage on component mount
+  useEffect(() => {
+    const savedAgentData = localStorage.getItem('handoverAgentData');
+    if (savedAgentData) {
+      try {
+        const agentData = JSON.parse(savedAgentData);
+        setForm(prev => ({
+          ...prev,
+          name: agentData.name || '',
+          cea: agentData.cea || '',
+          mobile: agentData.mobile || ''
+        }));
+      } catch (error) {
+        console.error('Error loading agent data:', error);
+      }
+    }
+  }, []);
 
   // Inventory state
   const [rooms, setRooms] = useState(() => {
@@ -106,14 +127,45 @@ function App() {
   const [photos, setPhotos] = useState([]); // { url, comment }
   const fileInputRef = useRef();
 
+  // Signature state
+  const [signatures, setSignatures] = useState({
+    agent: '',
+    vendor: '',
+    purchaser: '',
+    landlord: '',
+    tenant: ''
+  });
+  const agentSigRef = useRef();
+  const vendorSigRef = useRef();
+  const purchaserSigRef = useRef();
+  const landlordSigRef = useRef();
+  const tenantSigRef = useRef();
+
   // Error state for validation
   const [submitError, setSubmitError] = useState('');
   const [generating, setGenerating] = useState(false);
+
+  // Signup state
+  const [signupEmail, setSignupEmail] = useState('');
+  const [signupSuccess, setSignupSuccess] = useState(false);
+  const [signupError, setSignupError] = useState('');
+
+  // Save agent details to local storage
+  const saveAgentData = (name, value) => {
+    if (['name', 'cea', 'mobile'].includes(name)) {
+      const currentAgentData = JSON.parse(localStorage.getItem('handoverAgentData') || '{}');
+      const updatedAgentData = { ...currentAgentData, [name]: value };
+      localStorage.setItem('handoverAgentData', JSON.stringify(updatedAgentData));
+    }
+  };
 
   // Form handlers
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+    
+    // Auto-save agent details
+    saveAgentData(name, value);
   };
   const handleBlur = (e) => {
     const { name } = e.target;
@@ -196,6 +248,116 @@ function App() {
     fileInputRef.current.click();
   };
 
+  // Signature handlers
+  const handleSignatureChange = (type) => {
+    let sigRef;
+    switch(type) {
+      case 'agent': sigRef = agentSigRef; break;
+      case 'vendor': sigRef = vendorSigRef; break;
+      case 'purchaser': sigRef = purchaserSigRef; break;
+      case 'landlord': sigRef = landlordSigRef; break;
+      case 'tenant': sigRef = tenantSigRef; break;
+      default: return;
+    }
+    
+    if (sigRef.current) {
+      setSignatures(prev => ({
+        ...prev,
+        [type]: sigRef.current.toDataURL()
+      }));
+    }
+  };
+
+  const clearSignature = (type) => {
+    let sigRef;
+    switch(type) {
+      case 'agent': sigRef = agentSigRef; break;
+      case 'vendor': sigRef = vendorSigRef; break;
+      case 'purchaser': sigRef = purchaserSigRef; break;
+      case 'landlord': sigRef = landlordSigRef; break;
+      case 'tenant': sigRef = tenantSigRef; break;
+      default: return;
+    }
+    
+    if (sigRef.current) {
+      sigRef.current.clear();
+      setSignatures(prev => ({
+        ...prev,
+        [type]: ''
+      }));
+    }
+  };
+
+  // Clear agent data from local storage
+  const clearAgentData = () => {
+    localStorage.removeItem('handoverAgentData');
+    setForm(prev => ({
+      ...prev,
+      name: '',
+      cea: '',
+      mobile: ''
+    }));
+  };
+
+  // Reset all form data
+  const resetAllData = () => {
+    setForm({
+      name: '',
+      cea: '',
+      mobile: '',
+      address: '',
+      date: today,
+      transactionType: '',
+      propertyType: '',
+      vendorPurchaserName: '',
+      purchaserName: '',
+      landlordTenantName: '',
+      tenantName: '',
+      inspectionDate: today,
+      inspectionTime: new Date().toTimeString().slice(0, 5),
+    });
+    setInventory({});
+    setPhotos([]);
+    setSignatures({ agent: null, vendor: null, purchaser: null, landlord: null, tenant: null });
+    setFormTouched({});
+    setSubmitError('');
+    
+    // Clear all signatures
+    if (agentSigRef.current) agentSigRef.current.clear();
+    if (vendorSigRef.current) vendorSigRef.current.clear();
+    if (purchaserSigRef.current) purchaserSigRef.current.clear();
+    if (landlordSigRef.current) landlordSigRef.current.clear();
+    if (tenantSigRef.current) tenantSigRef.current.clear();
+  };
+
+  // Handle email signup
+  const handleSignup = (e) => {
+    e.preventDefault();
+    setSignupError('');
+    
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(signupEmail)) {
+      setSignupError('Please enter a valid email address');
+      return;
+    }
+
+    // Save to local storage (in a real app, this would be sent to a server)
+    const existingEmails = JSON.parse(localStorage.getItem('handoverSignups') || '[]');
+    if (!existingEmails.includes(signupEmail)) {
+      existingEmails.push(signupEmail);
+      localStorage.setItem('handoverSignups', JSON.stringify(existingEmails));
+    }
+    
+    setSignupSuccess(true);
+    setSignupEmail('');
+    
+    // Reset success message after 3 seconds
+    setTimeout(() => {
+      setSignupSuccess(false);
+    }, 3000);
+  };
+
   // PDF generation
   const handleGeneratePDF = async () => {
     setSubmitError('');
@@ -275,8 +437,14 @@ function App() {
       
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(10);
-      doc.text(`Owner/Purchaser: ${form.ownerPurchaserName || 'Not specified'}`, 50, y + 40);
-      doc.text(`Landlord/Tenant: ${form.landlordTenantName || 'Not specified'}`, 50, y + 55);
+      
+      if (form.transactionType === 'sale') {
+        doc.text(`Vendor: ${form.vendorPurchaserName || 'Not specified'}`, 50, y + 40);
+        doc.text(`Purchaser: ${form.purchaserName || 'Not specified'}`, 50, y + 55);
+      } else if (form.transactionType === 'rental') {
+        doc.text(`Landlord: ${form.landlordTenantName || 'Not specified'}`, 50, y + 40);
+        doc.text(`Tenant: ${form.tenantName || 'Not specified'}`, 50, y + 55);
+      }
       
       y += 100;
       // Inventory Section
@@ -377,25 +545,81 @@ function App() {
       doc.text('SIGNATURES', 50, y + 20);
       
       // Agent Signature Box
-      doc.setDrawColor(188, 158, 123);
-      doc.rect(50, y + 40, 200, 40, 'S');
+      doc.setDrawColor(59, 130, 246);
+      doc.rect(50, y + 40, 200, 60, 'S');
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(10);
       doc.text('Agent Signature', 55, y + 55);
       doc.text(`Name: ${form.name}`, 55, y + 70);
       doc.text(`CEA: ${form.cea}`, 55, y + 85);
       
-      // Owner/Purchaser Signature Box
-      doc.rect(300, y + 40, 200, 40, 'S');
-      doc.text('Owner/Purchaser Signature', 305, y + 55);
-      doc.text(`Name: ${form.ownerPurchaserName || '________________'}`, 305, y + 70);
-      doc.text('Date: ________________', 305, y + 85);
+      // Add agent signature if available
+      if (signatures.agent) {
+        try {
+          doc.addImage(signatures.agent, 'PNG', 55, y + 45, 180, 25);
+        } catch (e) {
+          doc.text('Signature captured', 55, y + 90);
+        }
+      }
       
-      // Landlord/Tenant Signature Box
-      doc.rect(50, y + 100, 200, 40, 'S');
-      doc.text('Landlord/Tenant Signature', 55, y + 115);
-      doc.text(`Name: ${form.landlordTenantName || '________________'}`, 55, y + 130);
-      doc.text('Date: ________________', 55, y + 145);
+      // Transaction-specific signature boxes
+      if (form.transactionType === 'sale') {
+        // Vendor Signature Box
+        doc.rect(300, y + 40, 200, 60, 'S');
+        doc.text('Vendor Signature', 305, y + 55);
+        doc.text(`Name: ${form.vendorPurchaserName || '________________'}`, 305, y + 70);
+        doc.text('Date: ________________', 305, y + 85);
+        
+        if (signatures.vendor) {
+          try {
+            doc.addImage(signatures.vendor, 'PNG', 305, y + 45, 180, 25);
+          } catch (e) {
+            doc.text('Signature captured', 305, y + 90);
+          }
+        }
+        
+        // Purchaser Signature Box
+        doc.rect(50, y + 120, 200, 60, 'S');
+        doc.text('Purchaser Signature', 55, y + 135);
+        doc.text(`Name: ${form.purchaserName || '________________'}`, 55, y + 150);
+        doc.text('Date: ________________', 55, y + 165);
+        
+        if (signatures.purchaser) {
+          try {
+            doc.addImage(signatures.purchaser, 'PNG', 55, y + 125, 180, 25);
+          } catch (e) {
+            doc.text('Signature captured', 55, y + 170);
+          }
+        }
+      } else if (form.transactionType === 'rental') {
+        // Landlord Signature Box
+        doc.rect(300, y + 40, 200, 60, 'S');
+        doc.text('Landlord Signature', 305, y + 55);
+        doc.text(`Name: ${form.landlordTenantName || '________________'}`, 305, y + 70);
+        doc.text('Date: ________________', 305, y + 85);
+        
+        if (signatures.landlord) {
+          try {
+            doc.addImage(signatures.landlord, 'PNG', 305, y + 45, 180, 25);
+          } catch (e) {
+            doc.text('Signature captured', 305, y + 90);
+          }
+        }
+        
+        // Tenant Signature Box
+        doc.rect(50, y + 120, 200, 60, 'S');
+        doc.text('Tenant Signature', 55, y + 135);
+        doc.text(`Name: ${form.tenantName || '________________'}`, 55, y + 150);
+        doc.text('Date: ________________', 55, y + 165);
+        
+        if (signatures.tenant) {
+          try {
+            doc.addImage(signatures.tenant, 'PNG', 55, y + 125, 180, 25);
+          } catch (e) {
+            doc.text('Signature captured', 55, y + 170);
+          }
+        }
+      }
       
       // Footer
       doc.setFont('helvetica', 'italic');
@@ -428,10 +652,11 @@ function App() {
     <div className="handover-app-root">
       {/* Header */}
       <header className="handover-header">
-        <h1>Handover</h1>
+        <h1>Welcome to Handover!</h1>
         <p className="handover-intro">
-          Create professional property handover reports with inventory tracking and photo documentation. 
-          Perfect for HDB, Condo, and Landed properties in Singapore.
+          Forget the old-school way — we make handover reports fast, fuss-free, and solid.<br/>
+          Whether it's HDB, Condo, Landed, Commercial, or Industrial — we got your back.<br/>
+          Let's go digital, Smart <span className="singapore-text">Singapore!</span> <span className="rocket-emoji">🚀</span>
         </p>
       </header>
 
@@ -512,12 +737,11 @@ function App() {
             </div>
             <div className="handover-form-group">
               <label>
-                Role
-                <select name="role" value={form.role} onChange={handleChange}>
-                  <option value="">Select Role</option>
-                  {roles.map((r) => (
-                    <option key={r} value={r}>{r}</option>
-                  ))}
+                Transaction Type
+                <select name="transactionType" value={form.transactionType} onChange={handleChange}>
+                  <option value="">Select Transaction Type</option>
+                  <option value="sale">Sale (Vendor & Purchaser)</option>
+                  <option value="rental">Rental (Landlord & Tenant)</option>
                 </select>
               </label>
             </div>
@@ -525,37 +749,72 @@ function App() {
               <label>
                 Property Type
                 <select name="propertyType" value={form.propertyType} onChange={handleChange}>
-                  <option value="">Select Type</option>
+                  <option value="">Select Property Type</option>
                   {propertyTypes.map((t) => (
                     <option key={t} value={t}>{t}</option>
                   ))}
                 </select>
               </label>
             </div>
-            <div className="handover-form-group">
-              <label>
-                Owner/Purchaser Name
-                <input
-                  type="text"
-                  name="ownerPurchaserName"
-                  value={form.ownerPurchaserName}
-                  onChange={handleChange}
-                  placeholder="Enter owner or purchaser name"
-                />
-              </label>
-            </div>
-            <div className="handover-form-group">
-              <label>
-                Landlord/Tenant Name
-                <input
-                  type="text"
-                  name="landlordTenantName"
-                  value={form.landlordTenantName}
-                  onChange={handleChange}
-                  placeholder="Enter landlord or tenant name"
-                />
-              </label>
-            </div>
+            
+            {/* Show fields based on transaction type */}
+            {form.transactionType === 'sale' && (
+              <>
+                <div className="handover-form-group">
+                  <label>
+                    Vendor Name
+                    <input
+                      type="text"
+                      name="vendorPurchaserName"
+                      value={form.vendorPurchaserName}
+                      onChange={handleChange}
+                      placeholder="Enter vendor name"
+                    />
+                  </label>
+                </div>
+                <div className="handover-form-group">
+                  <label>
+                    Purchaser Name
+                    <input
+                      type="text"
+                      name="purchaserName"
+                      value={form.purchaserName}
+                      onChange={handleChange}
+                      placeholder="Enter purchaser name"
+                    />
+                  </label>
+                </div>
+              </>
+            )}
+            
+            {form.transactionType === 'rental' && (
+              <>
+                <div className="handover-form-group">
+                  <label>
+                    Landlord Name
+                    <input
+                      type="text"
+                      name="landlordTenantName"
+                      value={form.landlordTenantName}
+                      onChange={handleChange}
+                      placeholder="Enter landlord name"
+                    />
+                  </label>
+                </div>
+                <div className="handover-form-group">
+                  <label>
+                    Tenant Name
+                    <input
+                      type="text"
+                      name="tenantName"
+                      value={form.tenantName}
+                      onChange={handleChange}
+                      placeholder="Enter tenant name"
+                    />
+                  </label>
+                </div>
+              </>
+            )}
             <div className="handover-form-group">
               <label>
                 Date Inspected
@@ -698,6 +957,158 @@ function App() {
           </div>
         </section>
 
+        {/* Signature Section */}
+        <section className="handover-section handover-signature-card">
+          <h3 className="handover-signature-title">Digital Signatures</h3>
+          
+          {/* Agent Signature */}
+          <div className="handover-signature-group">
+            <label className="handover-signature-label">Agent Signature</label>
+            <div className="handover-signature-container">
+              <SignaturePad
+                ref={agentSigRef}
+                canvasProps={{
+                  className: 'handover-signature-canvas',
+                  width: 400,
+                  height: 150
+                }}
+                onEnd={() => handleSignatureChange('agent')}
+              />
+              <button
+                type="button"
+                className="handover-signature-clear"
+                onClick={() => clearSignature('agent')}
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+
+          {/* Sale Transaction Signatures */}
+          {form.transactionType === 'sale' && (
+            <>
+              {/* Vendor Signature */}
+              <div className="handover-signature-group">
+                <label className="handover-signature-label">Vendor Signature</label>
+                <div className="handover-signature-container">
+                  <SignaturePad
+                    ref={vendorSigRef}
+                    canvasProps={{
+                      className: 'handover-signature-canvas',
+                      width: 400,
+                      height: 150
+                    }}
+                    onEnd={() => handleSignatureChange('vendor')}
+                  />
+                  <button
+                    type="button"
+                    className="handover-signature-clear"
+                    onClick={() => clearSignature('vendor')}
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+
+              {/* Purchaser Signature */}
+              <div className="handover-signature-group">
+                <label className="handover-signature-label">Purchaser Signature</label>
+                <div className="handover-signature-container">
+                  <SignaturePad
+                    ref={purchaserSigRef}
+                    canvasProps={{
+                      className: 'handover-signature-canvas',
+                      width: 400,
+                      height: 150
+                    }}
+                    onEnd={() => handleSignatureChange('purchaser')}
+                  />
+                  <button
+                    type="button"
+                    className="handover-signature-clear"
+                    onClick={() => clearSignature('purchaser')}
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Rental Transaction Signatures */}
+          {form.transactionType === 'rental' && (
+            <>
+              {/* Landlord Signature */}
+              <div className="handover-signature-group">
+                <label className="handover-signature-label">Landlord Signature</label>
+                <div className="handover-signature-container">
+                  <SignaturePad
+                    ref={landlordSigRef}
+                    canvasProps={{
+                      className: 'handover-signature-canvas',
+                      width: 400,
+                      height: 150
+                    }}
+                    onEnd={() => handleSignatureChange('landlord')}
+                  />
+                  <button
+                    type="button"
+                    className="handover-signature-clear"
+                    onClick={() => clearSignature('landlord')}
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+
+              {/* Tenant Signature */}
+              <div className="handover-signature-group">
+                <label className="handover-signature-label">Tenant Signature</label>
+                <div className="handover-signature-container">
+                  <SignaturePad
+                    ref={tenantSigRef}
+                    canvasProps={{
+                      className: 'handover-signature-canvas',
+                      width: 400,
+                      height: 150
+                    }}
+                    onEnd={() => handleSignatureChange('tenant')}
+                  />
+                  <button
+                    type="button"
+                    className="handover-signature-clear"
+                    onClick={() => clearSignature('tenant')}
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </section>
+
+        {/* Reset Buttons */}
+        <section className="handover-section handover-reset-card">
+          <div className="handover-reset-buttons">
+            <button
+              type="button"
+              className="handover-reset-btn handover-reset-agent"
+              onClick={clearAgentData}
+              title="Clear saved agent details"
+            >
+              Clear Agent Data
+            </button>
+            <button
+              type="button"
+              className="handover-reset-btn handover-reset-all"
+              onClick={resetAllData}
+              title="Reset all form data"
+            >
+              Reset All
+            </button>
+          </div>
+        </section>
+
         {/* Submit Button */}
         <section className="handover-section handover-submit-card">
           {submitError && <div className="handover-error-msg">{submitError}</div>}
@@ -711,6 +1122,48 @@ function App() {
           </button>
         </section>
       </main>
+
+      {/* Signup Section */}
+      <section className="handover-section handover-signup-card">
+        <div className="handover-signup-content">
+          <h3 className="handover-signup-title">🚀 Stay Updated with Our Innovations!</h3>
+          <p className="handover-signup-description">
+            Love this app? Sign up to get notified about our latest innovations and new features!
+          </p>
+          
+          <form onSubmit={handleSignup} className="handover-signup-form">
+            <div className="handover-signup-input-group">
+              <input
+                type="email"
+                value={signupEmail}
+                onChange={(e) => setSignupEmail(e.target.value)}
+                placeholder="Enter your email address"
+                className="handover-signup-input"
+                required
+              />
+              <button type="submit" className="handover-signup-btn">
+                Subscribe
+              </button>
+            </div>
+            
+            {signupError && (
+              <div className="handover-signup-error">
+                {signupError}
+              </div>
+            )}
+            
+            {signupSuccess && (
+              <div className="handover-signup-success">
+                ✅ Thank you! We'll keep you updated on our latest innovations.
+              </div>
+            )}
+          </form>
+          
+          <p className="handover-signup-note">
+            We respect your privacy. No spam, just innovation updates!
+          </p>
+        </div>
+      </section>
 
       {/* Footer */}
       <footer className="handover-footer">
