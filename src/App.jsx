@@ -277,7 +277,7 @@ function App() {
       // Footer
       doc.setFont('helvetica', 'italic');
       doc.setFontSize(10);
-      doc.text('Courtesy brought to you by #thepeoplesagency • Powered by Team Mindlink @2025', 40, 810);
+      doc.text('Powered by #thepeoplesagency 2025', 40, 810);
       // Save
       let pdfBlob = doc.output('blob');
       // If over 2MB, warn user (jsPDF does not support further compression)
