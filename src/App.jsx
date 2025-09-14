@@ -506,8 +506,7 @@ function App() {
                   type="date"
                   name="date"
                   value={form.date}
-                  readOnly
-                  disabled
+                  onChange={handleChange}
                 />
               </label>
             </div>
