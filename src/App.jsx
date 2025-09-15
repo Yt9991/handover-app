@@ -227,15 +227,42 @@ function App() {
   };
 
   // Photo handlers
-  const handlePhotoChange = (e) => {
+  const handlePhotoChange = async (e) => {
     const files = Array.from(e.target.files);
-    files.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        setPhotos(prev => [...prev, { url: ev.target.result, comment: '' }]);
-      };
-      reader.readAsDataURL(file);
-    });
+    
+    // Limit to 30 photos total
+    if (photos.length + files.length > 30) {
+      setSubmitError(`Maximum 30 photos allowed. You currently have ${photos.length} photos and are trying to add ${files.length} more.`);
+      e.target.value = '';
+      return;
+    }
+    
+    // Compress images before adding to state
+    for (const file of files) {
+      try {
+        // Compress image for better performance and smaller file sizes
+        const compressedFile = await imageCompression(file, {
+          maxWidthOrHeight: 800, // Higher resolution for better quality
+          maxSizeMB: 0.5, // Larger size for better quality
+          useWebWorker: true,
+          fileType: 'image/jpeg'
+        });
+        
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          setPhotos(prev => [...prev, { url: ev.target.result, comment: '' }]);
+        };
+        reader.readAsDataURL(compressedFile);
+      } catch (error) {
+        console.error('Error compressing image:', error);
+        // Fallback to original file if compression fails
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          setPhotos(prev => [...prev, { url: ev.target.result, comment: '' }]);
+        };
+        reader.readAsDataURL(file);
+      }
+    }
     e.target.value = '';
   };
   const handleRemovePhoto = (idx) => {
@@ -499,12 +526,27 @@ function App() {
         doc.text('PHOTO DOCUMENTATION', 50, y + 20);
         
         let photoY = y + 40;
+        let photosPerPage = 0;
+        const maxPhotosPerPage = 3; // 3 photos per page for better layout
+        
         for (let i = 0; i < photos.length; i++) {
-          // Compress image
+          // Check if we need a new page for photos
+          if (photosPerPage >= maxPhotosPerPage) {
+            doc.addPage();
+            y = 40;
+            photoY = y + 40;
+            photosPerPage = 0;
+          }
+          
+          // Further compress for PDF (images are already compressed when added)
           let imgData = photos[i].url;
           try {
             const file = await fetch(imgData).then(r => r.blob());
-            const compressed = await imageCompression(file, { maxWidthOrHeight: 400, maxSizeMB: 0.15 });
+            const compressed = await imageCompression(file, { 
+              maxWidthOrHeight: 300, // Smaller for PDF
+              maxSizeMB: 0.1, // Smaller for PDF
+              useWebWorker: true
+            });
             imgData = await imageCompression.getDataUrlFromFile(compressed);
           } catch (e) { /* fallback to original */ }
           
@@ -521,11 +563,7 @@ function App() {
           }
           
           photoY += 90;
-          
-          // Check if we need more space
-          if (photoY > y + 280) {
-            break; // Stop adding photos if we run out of space
-          }
+          photosPerPage++;
         }
         
         y += 320;
@@ -628,9 +666,9 @@ function App() {
       doc.text('Powered by #thepeoplesagency 2025', 40, pageHeight - 20);
       // Save
       let pdfBlob = doc.output('blob');
-      // If over 2MB, warn user (jsPDF does not support further compression)
-      if (pdfBlob.size > 2 * 1024 * 1024) {
-        setSubmitError('PDF is too large (>2MB). Try reducing the number or size of photos.');
+      // If over 5MB, warn user (increased limit for more photos)
+      if (pdfBlob.size > 5 * 1024 * 1024) {
+        setSubmitError('PDF is too large (>5MB). Try reducing the number of photos or contact support for larger reports.');
         setGenerating(false);
         return;
       }
@@ -913,15 +951,21 @@ function App() {
         {/* Photo Capture Section */}
         <section className="handover-section handover-photo-card">
           <div className="handover-photo-header">
-            <button
-              type="button"
-              className="handover-photo-add-btn"
-              onClick={handleAddPhotoClick}
-              aria-label="Add Photo"
-            >
-              <span role="img" aria-label="camera" style={{ marginRight: 8 }}>📷</span>
-              Add Photo
-            </button>
+            <div className="handover-photo-header-left">
+              <button
+                type="button"
+                className="handover-photo-add-btn"
+                onClick={handleAddPhotoClick}
+                aria-label="Add Photo"
+                disabled={photos.length >= 30}
+              >
+                <span role="img" aria-label="camera" style={{ marginRight: 8 }}>📷</span>
+                Add Photo
+              </button>
+              <span className="handover-photo-counter">
+                {photos.length}/30 photos
+              </span>
+            </div>
             <input
               type="file"
               accept="image/*"

@@ -440,8 +440,23 @@ body, #root, .handover-app-root {
 
 .handover-photo-header {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 0.7em;
+}
+.handover-photo-header-left {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+}
+.handover-photo-counter {
+  font-size: 0.9em;
+  color: #6b513f;
+  font-weight: 500;
+  background: #f5f3f0;
+  padding: 0.3em 0.8em;
+  border-radius: 6px;
+  border: 1px solid #d4c4b0;
 }
 .handover-photo-add-btn {
   background: #bc9e7b;
@@ -457,8 +472,13 @@ body, #root, .handover-app-root {
   display: flex;
   align-items: center;
 }
-.handover-photo-add-btn:hover {
+.handover-photo-add-btn:hover:not(:disabled) {
   background: #936f45;
+}
+.handover-photo-add-btn:disabled {
+  background: #d4c4b0;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 .handover-photo-grid {
   display: grid;
