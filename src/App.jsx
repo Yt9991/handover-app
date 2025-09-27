@@ -613,75 +613,48 @@ function App() {
           
           y += 100;
         } else {
-          // Process inventory with proper pagination
-          let currentPageStart = 0;
-          let isFirstInventoryPage = true;
+          // Add inventory section header
+          doc.setFillColor(250, 248, 246);
+          doc.rect(40, y, pageWidth - 80, 200, 'FD');
           
-          while (currentPageStart < allInventoryItems.length) {
-            // Check if we need a new page
-            if (y > 600) {
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(14);
+          doc.text('INVENTORY CHECKLIST', 50, y + 20);
+          
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(10);
+          doc.text(`Total Rooms: ${allInventoryItems.length}`, 50, y + 40);
+          
+          let inventoryY = y + 60;
+          
+          // Process all inventory items with proper pagination
+          allInventoryItems.forEach((room, roomIndex) => {
+            // Check if we need a new page for this room
+            if (inventoryY > pageHeight - 100) {
               doc.addPage();
-              y = 40;
+              inventoryY = 60;
             }
-            
-            // Calculate how many rooms can fit on this page
-            const maxItemsPerPage = Math.floor((pageHeight - y - 100) / 20); // 20pt per item
-            const itemsOnThisPage = Math.min(maxItemsPerPage, allInventoryItems.length - currentPageStart);
-            
-            // Add inventory section header
-            doc.setFillColor(250, 248, 246);
-            doc.rect(40, y, pageWidth - 80, Math.min(200, (itemsOnThisPage * 20) + 60), 'FD');
             
             doc.setFont('helvetica', 'bold');
-            doc.setFontSize(14);
-            doc.text('INVENTORY CHECKLIST', 50, y + 20);
-            
-            if (isFirstInventoryPage) {
-              doc.setFont('helvetica', 'normal');
-              doc.setFontSize(10);
-              doc.text(`Total Rooms: ${allInventoryItems.length}`, 50, y + 40);
-              y += 20;
-            }
+            doc.text(`${room.roomName}:`, 50, inventoryY);
+            inventoryY += 15;
             
             doc.setFont('helvetica', 'normal');
-            doc.setFontSize(10);
-            let inventoryY = y + (isFirstInventoryPage ? 60 : 40);
-            
-            // Add rooms for this page
-            for (let i = currentPageStart; i < currentPageStart + itemsOnThisPage; i++) {
-              const room = allInventoryItems[i];
-              
-              // Check if we need a new page for this room
+            room.items.forEach(item => {
+              // Check if we need a new page for this item
               if (inventoryY > pageHeight - 100) {
                 doc.addPage();
                 inventoryY = 60;
               }
               
-              doc.setFont('helvetica', 'bold');
-              doc.text(`${room.roomName}:`, 50, inventoryY);
-              inventoryY += 15;
-              
-              doc.setFont('helvetica', 'normal');
-              room.items.forEach(item => {
-                // Check if we need a new page for this item
-                if (inventoryY > pageHeight - 100) {
-                  doc.addPage();
-                  inventoryY = 60;
-                }
-                
-                doc.text(`✓ ${item.name} (Qty: ${item.qty})`, 60, inventoryY);
-                inventoryY += 12;
-              });
-              
-              inventoryY += 8; // Space between rooms
-            }
+              doc.text(`✓ ${item.name} (Qty: ${item.qty})`, 60, inventoryY);
+              inventoryY += 12;
+            });
             
-            currentPageStart += itemsOnThisPage;
-            isFirstInventoryPage = false;
-            
-            // Update y position for next section
-            y = inventoryY + 20;
-          }
+            inventoryY += 8; // Space between rooms
+          });
+          
+          y = inventoryY + 20;
         }
       }
       setProgress(50);
@@ -1218,7 +1191,7 @@ function App() {
   // Helper function to generate consistent filename
   const generateFilename = () => {
     const cleanAddress = form.address.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_').substring(0, 50);
-    return `Inventory_Report_${cleanAddress}_Powered_by_thepeoplesagency.pdf`;
+    return `Inventory Report Powered by #thepeoplesagency - ${cleanAddress}.pdf`;
   };
 
   // Validation
