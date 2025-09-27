@@ -212,14 +212,24 @@ function App() {
   const handleItemCheck = (roomKey, itemIdx) => {
     setInventory((prev) => {
       const room = prev[roomKey] || {};
-      const item = room[itemIdx] || { checked: false, qty: 0, name: rooms.find(r => r.key === roomKey).items[itemIdx] };
-      return {
+      const currentRooms = rooms.find(r => r.key === roomKey);
+      const itemName = currentRooms?.items[itemIdx];
+
+      const item = room[itemIdx] || { checked: false, qty: 0, name: itemName };
+
+      const newInventory = {
         ...prev,
         [roomKey]: {
           ...room,
-          [itemIdx]: { ...item, checked: !item.checked },
+          [itemIdx]: {
+            ...item,
+            checked: !item.checked,
+            qty: !item.checked ? Math.max(1, item.qty) : item.qty // Set qty to 1 when checking
+          },
         },
       };
+
+      return newInventory;
     });
   };
   const handleQtyChange = (roomKey, itemIdx, qty) => {
@@ -256,13 +266,35 @@ function App() {
   const handleAddCustomItem = (roomKey) => {
     const customName = prompt('Enter custom item name:');
     if (!customName || customName.trim() === '') return;
-    
-    // Add the custom item without any limits
-    setRooms((prev) => prev.map(r => 
-      r.key === roomKey 
-        ? { ...r, items: [...r.items, customName.trim()] } 
-        : r
-    ));
+
+    // Get current room to calculate the new index
+    const currentRoom = rooms.find(r => r.key === roomKey);
+    const newItemIndex = currentRoom ? currentRoom.items.length : 0;
+
+    // Update both states together
+    setRooms((prev) => {
+      const newRooms = prev.map(r =>
+        r.key === roomKey
+          ? { ...r, items: [...r.items, customName.trim()] }
+          : r
+      );
+      return newRooms;
+    });
+
+    // Immediately update inventory with the calculated index
+    setInventory((prevInventory) => {
+      const room = prevInventory[roomKey] || {};
+
+      const newInventory = {
+        ...prevInventory,
+        [roomKey]: {
+          ...room,
+          [newItemIndex]: { checked: true, qty: 1, name: customName.trim() }
+        }
+      };
+
+      return newInventory;
+    });
   };
 
   const handleRemoveCustomItem = (roomKey, itemIdx) => {
@@ -451,476 +483,27 @@ function App() {
     setProgress(0);
   };
 
-  // Standard PDF generation (existing)
-  const _generateStandardPDF = async () => {
-    setSubmitError('');
-    // Validate required fields
-    if (!form.name || !form.cea || !form.mobile || !form.address) {
-      setSubmitError('Please fill in all required fields.');
-      return;
-    }
-    setGenerating(true);
-    setProgress(0);
-    try {
-      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const pageHeight = doc.internal.pageSize.getHeight();
-      
-      setProgress(10);
-      
-      // Header with gradient-like effect
-      doc.setFillColor(188, 158, 123);
-      doc.rect(0, 0, pageWidth, 80, 'F');
-      
-      // Add logo to header
-      try {
-        const logoImg = new Image();
-        logoImg.src = '/png/120x120.png';
-        doc.addImage(logoImg, 'PNG', pageWidth - 100, 10, 60, 60);
-      } catch (e) {
-        console.warn('Logo could not be added to PDF:', e);
-      }
-      
-      // Title
-      doc.setTextColor(255, 255, 255);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(24);
-      doc.text('PROPERTY HANDOVER REPORT', 40, 35);
-      
-      // Subtitle
-      doc.setFontSize(12);
-      doc.text('Professional Property Inspection & Inventory Report', 40, 55);
-      
-      // Reset text color
-      doc.setTextColor(66, 45, 42);
-      
-      let y = 120;
-      
-      // Property Information Section
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(14);
-      doc.text('PROPERTY INFORMATION', 50, y + 20);
-      
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      doc.text(`Property Address: ${form.address}`, 50, y + 40);
-      doc.text(`Property Type: ${form.propertyType || 'Not specified'}`, 50, y + 55);
-      doc.text(`Date Generated: ${form.date}`, 50, y + 70);
-      doc.text(`Inspection Date: ${form.inspectionDate}`, 50, y + 85);
-      doc.text(`Inspection Time: ${form.inspectionTime}`, 50, y + 100);
-      
-      y += 140;
-      
-      // Agent Information Section
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(14);
-      doc.text('AGENT INFORMATION', 50, y + 20);
-      
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      doc.text(`Salesperson: ${form.name}`, 50, y + 40);
-      doc.text(`CEA Registration: ${form.cea}`, 50, y + 55);
-      doc.text(`Mobile: ${form.mobile}`, 50, y + 70);
-      doc.text(`Company: ${form.agentCompany || 'Not specified'}`, 50, y + 85);
-      doc.text(`Email: ${form.agentEmail || 'Not specified'}`, 50, y + 100);
-      doc.text(`Property Size: ${form.propertySize || 'Not specified'}`, 50, y + 115);
-      
-      y += 160;
-      setProgress(20);
-      
-      // Parties Information Box
-      doc.setFillColor(250, 248, 246);
-      doc.rect(40, y, pageWidth - 80, 80, 'FD');
-      
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(14);
-      doc.text('PARTIES INVOLVED', 50, y + 20);
-      
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      
-      if (form.transactionType === 'sale') {
-        doc.text(`Vendor: ${form.vendorPurchaserName || 'Not specified'}`, 50, y + 40);
-        doc.text(`Purchaser: ${form.purchaserName || 'Not specified'}`, 50, y + 55);
-      } else if (form.transactionType === 'rental') {
-        doc.text(`Landlord: ${form.landlordTenantName || 'Not specified'}`, 50, y + 40);
-        doc.text(`Tenant: ${form.tenantName || 'Not specified'}`, 50, y + 55);
-      }
-      
-      y += 100;
-      
-      // Property Condition & Details Section
-      if (y > 600) {
-        doc.addPage();
-        y = 40;
-      }
-      
-      doc.setFillColor(250, 248, 246);
-      doc.rect(40, y, pageWidth - 80, 120, 'FD');
-      
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(14);
-      doc.text('PROPERTY ASSESSMENT', 50, y + 20);
-      
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      doc.text(`Property Condition: ${form.propertyCondition || 'Not assessed'}`, 50, y + 40);
-      doc.text(`Number of Rooms: ${form.numberOfRooms || 'Not specified'}`, 50, y + 55);
-      
-      if (form.specialNotes) {
-        doc.text('Special Notes:', 50, y + 70);
-        const specialNotesLines = doc.splitTextToSize(form.specialNotes, pageWidth - 100);
-        doc.text(specialNotesLines, 50, y + 85);
-      }
-      
-      y += 140;
-      setProgress(30);
-      
-      // Inventory Section
-      if (['HDB', 'Condo', 'Landed'].includes(form.propertyType)) {
-        // Check if we need a new page
-        if (y > 600) {
-          doc.addPage();
-          y = 40;
-        }
-        
-        // Collect all inventory items first
-        const allInventoryItems = [];
-        rooms.forEach(room => {
-          const checkedItems = (inventory[room.key] ? Object.entries(inventory[room.key]) : []).filter(([idx, item]) => item.checked && item.qty > 0);
-          if (checkedItems.length > 0) {
-            allInventoryItems.push({
-              roomName: room.name,
-              items: checkedItems.map(([idx, item]) => ({
-                name: room.items[idx],
-                qty: item.qty
-              }))
-            });
-          }
-        });
-        
-        // If no inventory items, skip this section
-        if (allInventoryItems.length === 0) {
-          doc.setFont('helvetica', 'bold');
-          doc.setFontSize(14);
-          doc.text('INVENTORY CHECKLIST', 50, y + 20);
-          
-          doc.setFont('helvetica', 'normal');
-          doc.setFontSize(10);
-          doc.text('No inventory items checked', 50, y + 40);
-          
-          y += 100;
-        } else {
-          // Add inventory section header
-          doc.setFont('helvetica', 'bold');
-          doc.setFontSize(14);
-          doc.text('INVENTORY CHECKLIST', 50, y + 20);
-          
-          doc.setFont('helvetica', 'normal');
-          doc.setFontSize(10);
-          doc.text(`Total Rooms: ${allInventoryItems.length}`, 50, y + 40);
-          
-          let inventoryY = y + 60;
-          
-          // Process all inventory items with proper pagination
-          allInventoryItems.forEach((room, roomIndex) => {
-            // Check if we need a new page for this room
-            if (inventoryY > pageHeight - 100) {
-              doc.addPage();
-              inventoryY = 60;
-            }
-            
-            doc.setFont('helvetica', 'bold');
-            doc.text(`${room.roomName}:`, 50, inventoryY);
-            inventoryY += 15;
-            
-            doc.setFont('helvetica', 'normal');
-            room.items.forEach(item => {
-              // Check if we need a new page for this item
-              if (inventoryY > pageHeight - 100) {
-                doc.addPage();
-                inventoryY = 60;
-              }
-              
-              doc.text(`✓ ${item.name} (Qty: ${item.qty})`, 60, inventoryY);
-              inventoryY += 12;
-            });
-            
-            inventoryY += 8; // Space between rooms
-          });
-          
-          y = inventoryY + 20;
-        }
-      }
-      setProgress(50);
-      
-      // Photos Section
-      if (photos.length > 0) {
-        // Check if we need a new page
-        if (y > 500) {
-          doc.addPage();
-          y = 40;
-        }
-        
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(14);
-        doc.text('PHOTO DOCUMENTATION', 50, y + 20);
-        
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(10);
-        doc.text(`Total Photos: ${photos.length}`, 50, y + 40);
-        
-        let photoY = y + 60;
-        let photosPerPage = 0;
-        const maxPhotosPerPage = 8; // 8 photos per page for maximum space utilization
-        
-        for (let i = 0; i < photos.length; i++) {
-          // Check if we need a new page for photos
-          if (photosPerPage >= maxPhotosPerPage) {
-            doc.addPage();
-            y = 40;
-            photoY = y + 40;
-            photosPerPage = 0;
-            
-            // Add header for new photo page
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(14);
-            doc.text('PHOTO DOCUMENTATION (continued)', 50, y + 20);
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(10);
-            doc.text(`Photos ${i + 1}-${Math.min(i + maxPhotosPerPage, photos.length)} of ${photos.length}`, 50, y + 40);
-            photoY = y + 60;
-          }
-          
-          // Further compress for PDF (images are already compressed when added)
-          let imgData = photos[i].url;
-          try {
-            const file = await fetch(imgData).then(r => r.blob());
-            const compressed = await imageCompression(file, { 
-              maxWidthOrHeight: 300, // Smaller for PDF
-              maxSizeMB: 0.1, // Smaller for PDF
-              useWebWorker: true
-            });
-            imgData = await imageCompression.getDataUrlFromFile(compressed);
-          } catch (e) { 
-            console.warn('Image compression failed, using original:', e);
-            // fallback to original 
-          }
-          
-          // Add image with border (smaller size for more photos per page)
-          doc.setDrawColor(188, 158, 123);
-          doc.rect(50, photoY, 80, 60, 'S');
-          
-          try {
-            doc.addImage(imgData, 'JPEG', 50, photoY, 80, 60);
-          } catch (e) {
-            console.warn('Failed to add image to PDF:', e);
-            // Add placeholder text if image fails
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(8);
-            doc.text('Image failed to load', 55, photoY + 30);
-          }
-          
-          // Add comment if exists (smaller text)
-          if (photos[i].comment) {
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(8);
-            doc.text(`Photo ${i + 1}: ${photos[i].comment}`, 140, photoY + 15, { maxWidth: 200 });
-          }
-          
-          photoY += 70; // Reduced spacing between photos
-          photosPerPage++;
-        }
-        
-        y += 320;
-      }
-      setProgress(70);
-      
-      // Recommendations Section
-      if (form.recommendations) {
-        if (y > 500) {
-          doc.addPage();
-          y = 40;
-        }
-        
-        doc.setFillColor(250, 248, 246);
-        doc.rect(40, y, pageWidth - 80, 100, 'FD');
-        
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(14);
-        doc.text('RECOMMENDATIONS', 50, y + 20);
-        
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(10);
-        const recommendationsLines = doc.splitTextToSize(form.recommendations, pageWidth - 100);
-        doc.text(recommendationsLines, 50, y + 40);
-        
-        y += 120;
-      }
-      
-      setProgress(80);
-      
-      // Signature Section
-      if (y > 500) {
-        doc.addPage();
-        y = 40;
-      }
-      
-      doc.setFillColor(250, 248, 246);
-      doc.rect(40, y, pageWidth - 80, 150, 'FD');
-      
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(14);
-      doc.text('SIGNATURES', 50, y + 20);
-      
-      // Agent Signature Box
-      doc.setDrawColor(59, 130, 246);
-      doc.rect(50, y + 40, 200, 60, 'S');
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      doc.text('Agent Signature', 55, y + 55);
-      doc.text(`Name: ${form.name}`, 55, y + 70);
-      doc.text(`CEA: ${form.cea}`, 55, y + 85);
-      
-      // Add agent signature if available
-      if (signatures.agent) {
-        try {
-          doc.addImage(signatures.agent, 'PNG', 55, y + 45, 180, 25);
-        } catch (e) {
-          doc.text('Signature captured', 55, y + 90);
-        }
-      }
-      
-      // Transaction-specific signature boxes
-      if (form.transactionType === 'sale') {
-        // Vendor Signature Box
-        doc.rect(300, y + 40, 200, 60, 'S');
-        doc.text('Vendor Signature', 305, y + 55);
-        doc.text(`Name: ${form.vendorPurchaserName || '________________'}`, 305, y + 70);
-        doc.text('Date: ________________', 305, y + 85);
-        
-        if (signatures.vendor) {
-          try {
-            doc.addImage(signatures.vendor, 'PNG', 305, y + 45, 180, 25);
-          } catch (e) {
-            doc.text('Signature captured', 305, y + 90);
-          }
-        }
-        
-        // Purchaser Signature Box
-        doc.rect(50, y + 120, 200, 60, 'S');
-        doc.text('Purchaser Signature', 55, y + 135);
-        doc.text(`Name: ${form.purchaserName || '________________'}`, 55, y + 150);
-        doc.text('Date: ________________', 55, y + 165);
-        
-        if (signatures.purchaser) {
-          try {
-            doc.addImage(signatures.purchaser, 'PNG', 55, y + 125, 180, 25);
-          } catch (e) {
-            doc.text('Signature captured', 55, y + 170);
-          }
-        }
-      } else if (form.transactionType === 'rental') {
-        // Landlord Signature Box
-        doc.rect(300, y + 40, 200, 60, 'S');
-        doc.text('Landlord Signature', 305, y + 55);
-        doc.text(`Name: ${form.landlordTenantName || '________________'}`, 305, y + 70);
-        doc.text('Date: ________________', 305, y + 85);
-        
-        if (signatures.landlord) {
-          try {
-            doc.addImage(signatures.landlord, 'PNG', 305, y + 45, 180, 25);
-          } catch (e) {
-            doc.text('Signature captured', 305, y + 90);
-          }
-        }
-        
-        // Tenant Signature Box
-        doc.rect(50, y + 120, 200, 60, 'S');
-        doc.text('Tenant Signature', 55, y + 135);
-        doc.text(`Name: ${form.tenantName || '________________'}`, 55, y + 150);
-        doc.text('Date: ________________', 55, y + 165);
-        
-        if (signatures.tenant) {
-          try {
-            doc.addImage(signatures.tenant, 'PNG', 55, y + 125, 180, 25);
-          } catch (e) {
-            doc.text('Signature captured', 55, y + 170);
-          }
-        }
-      }
-      
-      // Summary Section
-      if (y > 400) {
-        doc.addPage();
-        y = 40;
-      }
-      
-      doc.setFillColor(250, 248, 246);
-      doc.rect(40, y, pageWidth - 80, 120, 'FD');
-      
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(14);
-      doc.text('REPORT SUMMARY', 50, y + 20);
-      
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      
-      // Calculate summary statistics
-      const totalInventoryItems = Object.values(inventory).reduce((total, room) => {
-        return total + Object.values(room).filter(item => item.checked && item.qty > 0).length;
-      }, 0);
-      
-      const totalPhotos = photos.length;
-      const totalRooms = rooms.length;
-      
-      doc.text(`Total Rooms Inspected: ${totalRooms}`, 50, y + 40);
-      doc.text(`Total Inventory Items: ${totalInventoryItems}`, 50, y + 55);
-      doc.text(`Total Photos Documented: ${totalPhotos}`, 50, y + 70);
-      doc.text(`Report Generated: ${new Date().toLocaleString()}`, 50, y + 85);
-      
-      y += 140;
-      setProgress(90);
-      
-      // Footer
-      doc.setFont('helvetica', 'italic');
-      doc.setFontSize(10);
-      doc.setTextColor(107, 81, 63);
-      doc.text('Powered by #thepeoplesagency 2025', 40, pageHeight - 20);
-      doc.text('Professional Property Handover Report', 40, pageHeight - 35);
-      // Save
-      let pdfBlob = doc.output('blob');
-      // If over 10MB, warn user (increased limit for more photos)
-      if (pdfBlob.size > 10 * 1024 * 1024) {
-        setSubmitError('PDF is too large (>10MB). Try reducing the number of photos or contact support for larger reports.');
-        setGenerating(false);
-        return;
-      }
-      setProgress(100);
-      doc.save(generateFilename());
-    } catch {
-      setSubmitError('Failed to generate PDF. Please try again.');
-    }
-    setGenerating(false);
-    setProgress(0);
-  };
 
-  // Compact PDF generation with optimized layout
+  // NEW SIMPLIFIED PDF GENERATION - GUARANTEED TO CAPTURE ALL ITEMS
   const generateCompactPDF = async () => {
     setGenerating(true);
     setProgress(0);
     try {
-      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+      const doc = new jsPDF({
+        unit: 'pt',
+        format: 'a4',
+        compress: true,
+        precision: 2
+      });
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
-      
+
       setProgress(10);
-      
-      // Compact header
+
+      // Header
       doc.setFillColor(188, 158, 123);
       doc.rect(0, 0, pageWidth, 60, 'F');
-      
-      // Add logo to header
+
       try {
         const logoImg = new Image();
         logoImg.src = '/png/120x120.png';
@@ -928,136 +511,166 @@ function App() {
       } catch (e) {
         console.warn('Logo could not be added to PDF:', e);
       }
-      
+
       doc.setTextColor(255, 255, 255);
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(20);
       doc.text('PROPERTY HANDOVER REPORT', 40, 35);
-      
+
+      // Tagline
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.text('Your Trusted Partner in Property Transitions', 40, 50);
+
       doc.setTextColor(66, 45, 42);
       let y = 100;
-      
-      // Combined information section
+
+      // Property & Salesperson Information
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(12);
-      doc.text('PROPERTY & AGENT INFORMATION', 50, y + 20);
-      
+      doc.text('PROPERTY & SALESPERSON INFORMATION', 50, y + 20);
+
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
       doc.text(`Property: ${form.address}`, 50, y + 40);
       doc.text(`Type: ${form.propertyType || 'Not specified'} | Size: ${form.propertySize || 'Not specified'}`, 50, y + 55);
-      doc.text(`Agent: ${form.name} (CEA: ${form.cea}) | Mobile: ${form.mobile}`, 50, y + 70);
+      doc.text(`Salesperson: ${form.name} (CEA: ${form.cea}) | Mobile: ${form.mobile}`, 50, y + 70);
       doc.text(`Date: ${form.date} | Inspection: ${form.inspectionDate} ${form.inspectionTime}`, 50, y + 85);
-      
+
       if (form.transactionType === 'sale') {
         doc.text(`Vendor: ${form.vendorPurchaserName || 'Not specified'} | Purchaser: ${form.purchaserName || 'Not specified'}`, 50, y + 100);
       } else if (form.transactionType === 'rental') {
         doc.text(`Landlord: ${form.landlordTenantName || 'Not specified'} | Tenant: ${form.tenantName || 'Not specified'}`, 50, y + 100);
       }
-      
+
       if (form.propertyCondition) {
         doc.text(`Condition: ${form.propertyCondition}`, 50, y + 115);
       }
-      
+
       if (form.specialNotes) {
         const notesLines = doc.splitTextToSize(`Notes: ${form.specialNotes}`, pageWidth - 100);
         doc.text(notesLines, 50, y + 130);
       }
-      
+
       y += 220;
       setProgress(30);
-      
-      // Compact inventory
+
+      // NEW SIMPLIFIED INVENTORY SECTION
       if (['HDB', 'Condo', 'Landed'].includes(form.propertyType)) {
         if (y > 600) {
           doc.addPage();
           y = 40;
         }
-        
+
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(12);
-        doc.text('INVENTORY SUMMARY', 50, y + 20);
-        
+        doc.text('INVENTORY CHECKLIST', 50, y + 20);
+
+        let inventoryY = y + 40;
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(9);
-        let inventoryY = y + 40;
-        
-        const allInventoryItems = [];
-        rooms.forEach(room => {
-          const checkedItems = (inventory[room.key] ? Object.entries(inventory[room.key]) : []).filter(([idx, item]) => item.checked && item.qty > 0);
-          if (checkedItems.length > 0) {
-            allInventoryItems.push({
-              roomName: room.name,
-              items: checkedItems.map(([idx, item]) => `${room.items[idx]} (${item.qty})`)
-            });
-          }
-        });
-        
-        allInventoryItems.forEach(room => {
-          if (inventoryY > pageHeight - 100) {
+
+        // COMPLETELY NEW APPROACH - ITERATE THROUGH ALL ROOMS AND ITEMS DIRECTLY
+        let totalCheckedItems = 0;
+
+        rooms.forEach((room) => {
+          // Check if we need a new page
+          if (inventoryY > pageHeight - 150) {
             doc.addPage();
             inventoryY = 60;
           }
-          
-          doc.setFont('helvetica', 'bold');
-          doc.text(`${room.roomName}:`, 50, inventoryY);
-          inventoryY += 12;
-          
-          doc.setFont('helvetica', 'normal');
-          room.items.forEach(item => {
-            if (inventoryY > pageHeight - 100) {
-              doc.addPage();
-              inventoryY = 60;
+
+          // Collect all checked items for this room
+          const roomCheckedItems = [];
+
+          // Go through ALL items in the room
+          room.items.forEach((itemName, itemIndex) => {
+            // Check if this item is checked in inventory
+            const isChecked = inventory[room.key] && inventory[room.key][itemIndex] && inventory[room.key][itemIndex].checked;
+            const qty = inventory[room.key] && inventory[room.key][itemIndex] ? inventory[room.key][itemIndex].qty || 1 : 1;
+
+            if (isChecked) {
+              roomCheckedItems.push(`${itemName} (Qty: ${qty})`);
+              totalCheckedItems++;
             }
-            doc.text(`• ${item}`, 60, inventoryY);
-            inventoryY += 10;
           });
-          inventoryY += 5;
+
+          // Only add room to PDF if it has checked items
+          if (roomCheckedItems.length > 0) {
+            // Room title
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(10);
+            doc.text(`${room.name}:`, 50, inventoryY);
+            inventoryY += 15;
+
+            // List all checked items
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(9);
+            roomCheckedItems.forEach(item => {
+              if (inventoryY > pageHeight - 50) {
+                doc.addPage();
+                inventoryY = 60;
+              }
+              doc.text(`• ${item}`, 60, inventoryY);
+              inventoryY += 12;
+            });
+
+            inventoryY += 5; // Space between rooms
+          }
         });
-        
-        y += 170;
+
+        // If no items were checked, show message
+        if (totalCheckedItems === 0) {
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(9);
+          doc.text('No inventory items have been checked.', 50, inventoryY);
+          inventoryY += 20;
+        }
+
+        y = inventoryY + 20;
       }
+
       setProgress(50);
-      
-      // Compact photos
+
+      // Photos section (unchanged)
       if (photos.length > 0) {
         if (y > 400) {
           doc.addPage();
           y = 40;
         }
-        
+
         doc.setFillColor(250, 248, 246);
         doc.rect(40, y, pageWidth - 80, 200, 'FD');
-        
+
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(12);
         doc.text(`PHOTO DOCUMENTATION (${photos.length} photos)`, 50, y + 20);
-        
+
         let photoY = y + 40;
         let photosPerPage = 0;
         const maxPhotosPerPage = 6;
-        
-        for (let i = 0; i < Math.min(photos.length, 12); i++) { // Limit to 12 photos in compact
+
+        for (let i = 0; i < Math.min(photos.length, 12); i++) {
           if (photosPerPage >= maxPhotosPerPage) {
             doc.addPage();
             photoY = 40;
             photosPerPage = 0;
           }
-          
+
           let imgData = photos[i].url;
           try {
             const file = await fetch(imgData).then(r => r.blob());
-            const compressed = await imageCompression(file, { 
+            const compressed = await imageCompression(file, {
               maxWidthOrHeight: 200,
               maxSizeMB: 0.05,
               useWebWorker: true
             });
             imgData = await imageCompression.getDataUrlFromFile(compressed);
           } catch (e) { /* fallback */ }
-          
+
           doc.setDrawColor(188, 158, 123);
           doc.rect(50, photoY, 60, 45, 'S');
-          
+
           try {
             doc.addImage(imgData, 'JPEG', 50, photoY, 60, 45);
           } catch (e) {
@@ -1065,116 +678,134 @@ function App() {
             doc.setFontSize(8);
             doc.text('Photo', 55, photoY + 25);
           }
-          
+
+          if (photos[i].comment) {
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(7);
+            doc.text(`Photo ${i + 1}: ${photos[i].comment}`, 120, photoY + 10, { maxWidth: 150 });
+          }
+
           photoY += 55;
           photosPerPage++;
         }
-        
+
         y += 220;
       }
       setProgress(70);
-      
-      // Improved signature section
+
+      // Signatures section (unchanged)
       if (y > 300) {
         doc.addPage();
         y = 40;
       }
-      
+
       doc.setFillColor(250, 248, 246);
-      doc.rect(40, y, pageWidth - 80, 200, 'FD');
-      
+      doc.rect(40, y, pageWidth - 80, 220, 'FD');
+
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(14);
       doc.text('SIGNATURES', 50, y + 20);
-      
-      // Agent signature
+
+      // Salesperson signature
       doc.setDrawColor(59, 130, 246);
-      doc.rect(50, y + 40, 200, 50, 'S');
+      doc.rect(50, y + 40, 200, 60, 'S');
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(10);
-      doc.text('Agent Signature', 55, y + 55);
-      doc.text(`Name: ${form.name}`, 55, y + 70);
-      doc.text(`CEA: ${form.cea}`, 55, y + 85);
-      
+      doc.text('Salesperson Signature', 55, y + 55);
+
       if (signatures.agent) {
         try {
-          doc.addImage(signatures.agent, 'PNG', 55, y + 45, 180, 20);
+          doc.addImage(signatures.agent, 'PNG', 55, y + 60, 180, 20);
         } catch (e) {
-          doc.text('Signature captured', 55, y + 90);
+          doc.text('Signature captured', 55, y + 65);
         }
       }
-      
-      // Transaction signatures - side by side layout
+
+      doc.text(`Name: ${form.name}`, 55, y + 85);
+      doc.text(`CEA: ${form.cea}`, 55, y + 95);
+
+      // Transaction signatures
       if (form.transactionType === 'sale') {
-        // Vendor signature
-        doc.rect(300, y + 40, 200, 50, 'S');
+        doc.rect(300, y + 40, 200, 60, 'S');
         doc.text('Vendor Signature', 305, y + 55);
-        doc.text(`Name: ${form.vendorPurchaserName || '________________'}`, 305, y + 70);
-        doc.text('Date: ________________', 305, y + 85);
-        
+
         if (signatures.vendor) {
           try {
-            doc.addImage(signatures.vendor, 'PNG', 305, y + 45, 180, 20);
+            doc.addImage(signatures.vendor, 'PNG', 305, y + 60, 180, 20);
           } catch (e) {
-            doc.text('Signature captured', 305, y + 90);
+            doc.text('Signature captured', 305, y + 65);
           }
         }
-        
-        // Purchaser signature
-        doc.rect(50, y + 110, 200, 50, 'S');
-        doc.text('Purchaser Signature', 55, y + 125);
-        doc.text(`Name: ${form.purchaserName || '________________'}`, 55, y + 140);
-        doc.text('Date: ________________', 55, y + 155);
-        
+
+        doc.text(`Name: ${form.vendorPurchaserName || '________________'}`, 305, y + 85);
+        doc.text(`Date: ${form.inspectionDate}`, 305, y + 95);
+
+        doc.rect(50, y + 120, 200, 60, 'S');
+        doc.text('Purchaser Signature', 55, y + 135);
+
         if (signatures.purchaser) {
           try {
-            doc.addImage(signatures.purchaser, 'PNG', 55, y + 115, 180, 20);
+            doc.addImage(signatures.purchaser, 'PNG', 55, y + 140, 180, 20);
           } catch (e) {
-            doc.text('Signature captured', 55, y + 160);
+            doc.text('Signature captured', 55, y + 145);
           }
         }
+
+        doc.text(`Name: ${form.purchaserName || '________________'}`, 55, y + 165);
+        doc.text(`Date: ${form.inspectionDate}`, 55, y + 175);
       } else if (form.transactionType === 'rental') {
-        // Landlord signature
-        doc.rect(300, y + 40, 200, 50, 'S');
+        doc.rect(300, y + 40, 200, 60, 'S');
         doc.text('Landlord Signature', 305, y + 55);
-        doc.text(`Name: ${form.landlordTenantName || '________________'}`, 305, y + 70);
-        doc.text('Date: ________________', 305, y + 85);
-        
+
         if (signatures.landlord) {
           try {
-            doc.addImage(signatures.landlord, 'PNG', 305, y + 45, 180, 20);
+            doc.addImage(signatures.landlord, 'PNG', 305, y + 60, 180, 20);
           } catch (e) {
-            doc.text('Signature captured', 305, y + 90);
+            doc.text('Signature captured', 305, y + 65);
           }
         }
-        
-        // Tenant signature
-        doc.rect(50, y + 110, 200, 50, 'S');
-        doc.text('Tenant Signature', 55, y + 125);
-        doc.text(`Name: ${form.tenantName || '________________'}`, 55, y + 140);
-        doc.text('Date: ________________', 55, y + 155);
-        
+
+        doc.text(`Name: ${form.landlordTenantName || '________________'}`, 305, y + 85);
+        doc.text(`Date: ${form.inspectionDate}`, 305, y + 95);
+
+        doc.rect(50, y + 120, 200, 60, 'S');
+        doc.text('Tenant Signature', 55, y + 135);
+
         if (signatures.tenant) {
           try {
-            doc.addImage(signatures.tenant, 'PNG', 55, y + 115, 180, 20);
+            doc.addImage(signatures.tenant, 'PNG', 55, y + 140, 180, 20);
           } catch (e) {
-            doc.text('Signature captured', 55, y + 160);
+            doc.text('Signature captured', 55, y + 145);
           }
         }
+
+        doc.text(`Name: ${form.tenantName || '________________'}`, 55, y + 165);
+        doc.text(`Date: ${form.inspectionDate}`, 55, y + 175);
       }
-      
+
       setProgress(90);
-      
+
       // Footer
       doc.setFont('helvetica', 'italic');
       doc.setFontSize(10);
       doc.setTextColor(107, 81, 63);
-      doc.text('Powered by #thepeoplesagency 2025', 40, pageHeight - 20);
-      
+      doc.text('Powered by Team Mindlink, #thepeoplesagency ©2025', 40, pageHeight - 20);
+
+      // Add page numbers
+      const totalPages = doc.internal.getNumberOfPages();
+      for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+        doc.setPage(pageNum);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(139, 111, 69);
+        doc.text(`Page ${pageNum} of ${totalPages}`, pageWidth - 70, pageHeight - 10, { align: 'right' });
+      }
+
       setProgress(100);
       doc.save(generateFilename());
-    } catch {
-      setSubmitError('Failed to generate compact PDF. Please try again.');
+    } catch (error) {
+      console.error('PDF generation error:', error);
+      setSubmitError('Failed to generate PDF. Please try again.');
     }
     setGenerating(false);
     setProgress(0);
@@ -1216,7 +847,7 @@ function App() {
       <main className="handover-main">
         {/* Form Section */}
         <section className="handover-section handover-form-card">
-          <h2 className="handover-section-title">Property & Agent Details</h2>
+          <h2 className="handover-section-title">Property & Salesperson Details</h2>
           <form className="handover-form" autoComplete="off">
             <div className="handover-form-group">
               <label>
@@ -1266,7 +897,7 @@ function App() {
             
             <div className="handover-form-group">
               <label>
-                Agent Company
+                Salesperson Company
                 <input
                   type="text"
                   name="agentCompany"
@@ -1276,10 +907,10 @@ function App() {
                 />
               </label>
             </div>
-            
+
             <div className="handover-form-group">
               <label>
-                Agent Email
+                Salesperson Email
                 <input
                   type="email"
                   name="agentEmail"
@@ -1509,8 +1140,8 @@ function App() {
                   <div
                     className="handover-room-body"
                     style={{
-                      maxHeight: expanded[room.key] ? 500 : 0,
-                      overflow: 'hidden',
+                      maxHeight: expanded[room.key] ? '2000px' : 0,
+                      overflow: expanded[room.key] ? 'visible' : 'hidden',
                       transition: 'max-height 0.35s cubic-bezier(0.4,0,0.2,1)',
                     }}
                   >
@@ -1644,9 +1275,9 @@ function App() {
         <section className="handover-section handover-signature-card">
           <h2 className="handover-section-title">Digital Signatures</h2>
           
-          {/* Agent Signature */}
+          {/* Salesperson Signature */}
           <div className="handover-signature-group">
-            <label className="handover-signature-label">Agent Signature</label>
+            <label className="handover-signature-label">Salesperson Signature</label>
             <div className="handover-signature-container">
               <SignaturePad
                 ref={agentSigRef}
@@ -1777,9 +1408,9 @@ function App() {
               type="button"
               className="handover-reset-btn handover-reset-agent"
               onClick={clearAgentData}
-              title="Clear saved agent details"
+              title="Clear saved salesperson details"
             >
-              Clear Agent Data
+              Clear Salesperson Data
             </button>
             <button
               type="button"
@@ -1911,7 +1542,7 @@ function App() {
 
       {/* Footer */}
       <footer className="handover-footer">
-        Powered by #thepeoplesagency 2025
+        Powered by Team Mindlink, #thepeoplesagency ©2025
       </footer>
     </div>
   );
