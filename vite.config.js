@@ -47,7 +47,9 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest}'],
         cleanupOutdatedCaches: true,
         skipWaiting: true,
-        clientsClaim: true
+        clientsClaim: true,
+        // Force cache update with new revision
+        cacheId: 'handover-app-v3-2025-09-27'
       },
       devOptions: {
         enabled: true
