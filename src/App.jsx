@@ -472,6 +472,15 @@ function App() {
       doc.setFillColor(188, 158, 123);
       doc.rect(0, 0, pageWidth, 80, 'F');
       
+      // Add logo to header
+      try {
+        const logoImg = new Image();
+        logoImg.src = '/png/120x120.png';
+        doc.addImage(logoImg, 'PNG', pageWidth - 100, 10, 60, 60);
+      } catch (e) {
+        console.warn('Logo could not be added to PDF:', e);
+      }
+      
       // Title
       doc.setTextColor(255, 255, 255);
       doc.setFont('helvetica', 'bold');
@@ -487,11 +496,7 @@ function App() {
       
       let y = 120;
       
-      // Property Information Box
-      doc.setFillColor(250, 248, 246);
-      doc.setDrawColor(188, 158, 123);
-      doc.rect(40, y, pageWidth - 80, 120, 'FD');
-      
+      // Property Information Section
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(14);
       doc.text('PROPERTY INFORMATION', 50, y + 20);
@@ -506,10 +511,7 @@ function App() {
       
       y += 140;
       
-      // Agent Information Box
-      doc.setFillColor(250, 248, 246);
-      doc.rect(40, y, pageWidth - 80, 140, 'FD');
-      
+      // Agent Information Section
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(14);
       doc.text('AGENT INFORMATION', 50, y + 20);
@@ -599,10 +601,6 @@ function App() {
         
         // If no inventory items, skip this section
         if (allInventoryItems.length === 0) {
-          // Still add a small section to indicate no items
-          doc.setFillColor(250, 248, 246);
-          doc.rect(40, y, pageWidth - 80, 80, 'FD');
-          
           doc.setFont('helvetica', 'bold');
           doc.setFontSize(14);
           doc.text('INVENTORY CHECKLIST', 50, y + 20);
@@ -614,9 +612,6 @@ function App() {
           y += 100;
         } else {
           // Add inventory section header
-          doc.setFillColor(250, 248, 246);
-          doc.rect(40, y, pageWidth - 80, 200, 'FD');
-          
           doc.setFont('helvetica', 'bold');
           doc.setFontSize(14);
           doc.text('INVENTORY CHECKLIST', 50, y + 20);
@@ -667,9 +662,6 @@ function App() {
           y = 40;
         }
         
-        doc.setFillColor(250, 248, 246);
-        doc.rect(40, y, pageWidth - 80, 300, 'FD');
-        
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(14);
         doc.text('PHOTO DOCUMENTATION', 50, y + 20);
@@ -691,8 +683,6 @@ function App() {
             photosPerPage = 0;
             
             // Add header for new photo page
-            doc.setFillColor(250, 248, 246);
-            doc.rect(40, y, pageWidth - 80, 60, 'FD');
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(14);
             doc.text('PHOTO DOCUMENTATION (continued)', 50, y + 20);
@@ -930,6 +920,15 @@ function App() {
       doc.setFillColor(188, 158, 123);
       doc.rect(0, 0, pageWidth, 60, 'F');
       
+      // Add logo to header
+      try {
+        const logoImg = new Image();
+        logoImg.src = '/png/120x120.png';
+        doc.addImage(logoImg, 'PNG', pageWidth - 80, 5, 50, 50);
+      } catch (e) {
+        console.warn('Logo could not be added to PDF:', e);
+      }
+      
       doc.setTextColor(255, 255, 255);
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(20);
@@ -939,9 +938,6 @@ function App() {
       let y = 100;
       
       // Combined information section
-      doc.setFillColor(250, 248, 246);
-      doc.rect(40, y, pageWidth - 80, 200, 'FD');
-      
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(12);
       doc.text('PROPERTY & AGENT INFORMATION', 50, y + 20);
@@ -977,9 +973,6 @@ function App() {
           doc.addPage();
           y = 40;
         }
-        
-        doc.setFillColor(250, 248, 246);
-        doc.rect(40, y, pageWidth - 80, 150, 'FD');
         
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(12);
