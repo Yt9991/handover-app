@@ -1,73 +1,94 @@
 <svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <!-- Main gradient for the house -->
+    <!-- Enhanced main gradient for the house -->
     <linearGradient id="houseGradient" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" style="stop-color:#bc9e7b;stop-opacity:1" />
-      <stop offset="50%" style="stop-color:#d4af8c;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#936f45;stop-opacity:1" />
+      <stop offset="30%" style="stop-color:#d4af8c;stop-opacity:1" />
+      <stop offset="70%" style="stop-color:#a67c52;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8b6f47;stop-opacity:1" />
     </linearGradient>
     
-    <!-- Handshake gradient -->
+    <!-- Modern handshake gradient -->
     <linearGradient id="handshakeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#422d2a;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#6b513f;stop-opacity:1" />
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#f8fafc;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#e2e8f0;stop-opacity:1" />
     </linearGradient>
     
-    <!-- Background glow -->
+    <!-- Enhanced background glow -->
     <radialGradient id="glowGradient" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" style="stop-color:#bc9e7b;stop-opacity:0.2" />
+      <stop offset="0%" style="stop-color:#bc9e7b;stop-opacity:0.25" />
+      <stop offset="70%" style="stop-color:#bc9e7b;stop-opacity:0.1" />
       <stop offset="100%" style="stop-color:#bc9e7b;stop-opacity:0" />
     </radialGradient>
     
-    <!-- Shadow filter -->
-    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
-      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#422d2a" flood-opacity="0.3"/>
+    <!-- Modern shadow filter -->
+    <filter id="modernShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="6" stdDeviation="12" flood-color="#422d2a" flood-opacity="0.25"/>
+    </filter>
+    
+    <!-- Subtle inner glow -->
+    <filter id="innerGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge> 
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
     </filter>
   </defs>
   
-  <!-- Background glow -->
-  <circle cx="60" cy="60" r="55" fill="url(#glowGradient)"/>
+  <!-- Enhanced background with subtle pattern -->
+  <circle cx="60" cy="60" r="58" fill="url(#glowGradient)"/>
   
-  <!-- House structure with gradient -->
-  <path d="M20 70L60 35L100 70V100C100 102.209 98.2091 104 96 104H24C21.7909 104 20 102.209 20 100V70Z" 
+  <!-- Modern house structure with enhanced gradient -->
+  <path d="M25 75L60 40L95 75V105C95 107.761 92.7614 110 90 110H30C27.2386 110 25 107.761 25 105V75Z" 
         fill="url(#houseGradient)" 
         stroke="#422d2a" 
-        stroke-width="2" 
-        filter="url(#shadow)"/>
+        stroke-width="2.5" 
+        filter="url(#modernShadow)"/>
   
-  <!-- House door -->
-  <rect x="50" y="80" width="20" height="24" fill="#422d2a" rx="2"/>
-  <circle cx="65" cy="92" r="1.5" fill="#bc9e7b"/>
+  <!-- Modern house door with better proportions -->
+  <rect x="52" y="85" width="16" height="20" fill="#422d2a" rx="3"/>
+  <circle cx="62" cy="95" r="1.2" fill="#bc9e7b"/>
   
-  <!-- Windows -->
-  <rect x="35" y="75" width="8" height="8" fill="#422d2a" rx="1"/>
-  <rect x="77" y="75" width="8" height="8" fill="#422d2a" rx="1"/>
+  <!-- Enhanced windows with frames -->
+  <rect x="38" y="80" width="10" height="10" fill="#422d2a" rx="2"/>
+  <rect x="72" y="80" width="10" height="10" fill="#422d2a" rx="2"/>
   
-  <!-- Handshake inside house -->
-  <g transform="translate(60, 85)">
-    <!-- Left hand -->
-    <path d="M-8 0C-8 -2 -6 -4 -4 -4C-2 -4 0 -2 0 0C0 2 2 4 4 4C6 4 8 2 8 0" 
+  <!-- Window frames -->
+  <rect x="38" y="80" width="10" height="10" fill="none" stroke="#bc9e7b" stroke-width="1" rx="2"/>
+  <rect x="72" y="80" width="10" height="10" fill="none" stroke="#bc9e7b" stroke-width="1" rx="2"/>
+  
+  <!-- Modern handshake with better design -->
+  <g transform="translate(60, 90)" filter="url(#innerGlow)">
+    <!-- Left hand - more detailed -->
+    <path d="M-10 -2C-10 -4 -8 -6 -6 -6C-4 -6 -2 -4 -2 -2C-2 0 0 2 2 2C4 2 6 0 6 -2C6 -4 8 -6 10 -6C12 -6 14 -4 14 -2" 
+          stroke="url(#handshakeGradient)" 
+          stroke-width="3" 
+          fill="none" 
+          stroke-linecap="round"
+          stroke-linejoin="round"/>
+    
+    <!-- Right hand - more detailed -->
+    <path d="M10 -2C10 -4 8 -6 6 -6C4 -6 2 -4 2 -2C2 0 0 2 -2 2C-4 2 -6 0 -6 -2C-6 -4 -8 -6 -10 -6C-12 -6 -14 -4 -14 -2" 
+          stroke="url(#handshakeGradient)" 
+          stroke-width="3" 
+          fill="none" 
+          stroke-linecap="round"
+          stroke-linejoin="round"/>
+    
+    <!-- Connection line with gradient -->
+    <path d="M-8 -2L8 -2" 
           stroke="url(#handshakeGradient)" 
           stroke-width="2.5" 
-          fill="none" 
-          stroke-linecap="round"/>
-    
-    <!-- Right hand -->
-    <path d="M8 0C8 -2 6 -4 4 -4C2 -4 0 -2 0 0C0 2 -2 4 -4 4C-6 4 -8 2 -8 0" 
-          stroke="url(#handshakeGradient)" 
-          stroke-width="2.5" 
-          fill="none" 
-          stroke-linecap="round"/>
-    
-    <!-- Connection line -->
-    <path d="M-6 0L6 0" 
-          stroke="url(#handshakeGradient)" 
-          stroke-width="2" 
           stroke-linecap="round"/>
   </g>
   
-  <!-- Decorative elements -->
-  <circle cx="30" cy="45" r="2" fill="#bc9e7b" opacity="0.6"/>
-  <circle cx="90" cy="50" r="1.5" fill="#d4af8c" opacity="0.7"/>
-  <circle cx="25" cy="85" r="1" fill="#936f45" opacity="0.5"/>
+  <!-- Modern decorative elements -->
+  <circle cx="35" cy="50" r="2.5" fill="#bc9e7b" opacity="0.8"/>
+  <circle cx="85" cy="55" r="2" fill="#d4af8c" opacity="0.9"/>
+  <circle cx="30" cy="90" r="1.5" fill="#8b6f47" opacity="0.7"/>
+  
+  <!-- Subtle accent lines -->
+  <path d="M20 75L60 45L100 75" stroke="#bc9e7b" stroke-width="1" opacity="0.3" fill="none"/>
 </svg>

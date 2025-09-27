@@ -83,6 +83,15 @@ function App() {
     tenantName: '',
     inspectionDate: today,
     inspectionTime: new Date().toTimeString().slice(0, 5),
+    // New enhanced fields
+    propertySize: '',
+    numberOfRooms: '',
+    propertyCondition: '',
+    specialNotes: '',
+    recommendations: '',
+    agentCompany: '',
+    agentEmail: '',
+    // Removed template selection - using compact format only
   });
   const [formTouched, setFormTouched] = useState({});
 
@@ -144,11 +153,35 @@ function App() {
   // Error state for validation
   const [submitError, setSubmitError] = useState('');
   const [generating, setGenerating] = useState(false);
+  const [progress, setProgress] = useState(0);
+
+  // Typing effect state
+  const [typingText, setTypingText] = useState('');
+  const [typingIndex, setTypingIndex] = useState(0);
 
   // Signup state
   const [signupEmail, setSignupEmail] = useState('');
   const [signupSuccess, setSignupSuccess] = useState(false);
   const [signupError, setSignupError] = useState('');
+
+  // Modern typing effect with word-by-word animation
+  const fullText = "Forget the old-school way — we make handover reports fast, fuss-free, and solid.\nWhether it's HDB, Condo, Landed, Commercial, or Industrial — we got your back.\nLet's go digital! 🚀";
+  const words = fullText.split(' ');
+  const [currentWordIndex, setCurrentWordIndex] = useState(0);
+  const [displayText, setDisplayText] = useState('');
+
+  // Modern typing effect - word by word with fade-in
+  useEffect(() => {
+    if (currentWordIndex < words.length) {
+      const timeout = setTimeout(() => {
+        const newWord = words[currentWordIndex];
+        setDisplayText(prev => prev + (currentWordIndex > 0 ? ' ' : '') + newWord);
+        setCurrentWordIndex(currentWordIndex + 1);
+      }, 100); // Faster, more modern timing
+      return () => clearTimeout(timeout);
+    }
+  }, [currentWordIndex, words]);
+
 
   // Save agent details to local storage
   const saveAgentData = (name, value) => {
@@ -179,7 +212,7 @@ function App() {
   const handleItemCheck = (roomKey, itemIdx) => {
     setInventory((prev) => {
       const room = prev[roomKey] || {};
-      const item = room[itemIdx] || { checked: false, qty: 1, name: rooms.find(r => r.key === roomKey).items[itemIdx] };
+      const item = room[itemIdx] || { checked: false, qty: 0, name: rooms.find(r => r.key === roomKey).items[itemIdx] };
       return {
         ...prev,
         [roomKey]: {
@@ -192,12 +225,12 @@ function App() {
   const handleQtyChange = (roomKey, itemIdx, qty) => {
     setInventory((prev) => {
       const room = prev[roomKey] || {};
-      const item = room[itemIdx] || { checked: false, qty: 1, name: rooms.find(r => r.key === roomKey).items[itemIdx] };
+      const item = room[itemIdx] || { checked: false, qty: 0, name: rooms.find(r => r.key === roomKey).items[itemIdx] };
       return {
         ...prev,
         [roomKey]: {
           ...room,
-          [itemIdx]: { ...item, qty: Math.max(1, Number(qty) || 1) },
+          [itemIdx]: { ...item, qty: Math.max(0, Number(qty) || 0) },
         },
       };
     });
@@ -222,17 +255,31 @@ function App() {
   };
   const handleAddCustomItem = (roomKey) => {
     const customName = prompt('Enter custom item name:');
-    if (!customName) return;
-    setRooms((prev) => prev.map(r => r.key === roomKey ? { ...r, items: [...r.items, customName] } : r));
+    if (!customName || customName.trim() === '') return;
+    
+    // Add the custom item without any limits
+    setRooms((prev) => prev.map(r => 
+      r.key === roomKey 
+        ? { ...r, items: [...r.items, customName.trim()] } 
+        : r
+    ));
+  };
+
+  const handleRemoveCustomItem = (roomKey, itemIdx) => {
+    setRooms((prev) => prev.map(r => 
+      r.key === roomKey 
+        ? { ...r, items: r.items.filter((_, idx) => idx !== itemIdx) } 
+        : r
+    ));
   };
 
   // Photo handlers
   const handlePhotoChange = async (e) => {
     const files = Array.from(e.target.files);
     
-    // Limit to 30 photos total
-    if (photos.length + files.length > 30) {
-      setSubmitError(`Maximum 30 photos allowed. You currently have ${photos.length} photos and are trying to add ${files.length} more.`);
+    // Limit to 100 photos total (increased from 30)
+    if (photos.length + files.length > 100) {
+      setSubmitError(`Maximum 100 photos allowed. You currently have ${photos.length} photos and are trying to add ${files.length} more.`);
       e.target.value = '';
       return;
     }
@@ -385,7 +432,7 @@ function App() {
     }, 3000);
   };
 
-  // PDF generation
+  // Main PDF generation function - using compact format only
   const handleGeneratePDF = async () => {
     setSubmitError('');
     // Validate required fields
@@ -394,10 +441,32 @@ function App() {
       return;
     }
     setGenerating(true);
+    setProgress(0);
+    try {
+      await generateCompactPDF();
+    } catch {
+      setSubmitError('Failed to generate PDF. Please try again.');
+    }
+    setGenerating(false);
+    setProgress(0);
+  };
+
+  // Standard PDF generation (existing)
+  const _generateStandardPDF = async () => {
+    setSubmitError('');
+    // Validate required fields
+    if (!form.name || !form.cea || !form.mobile || !form.address) {
+      setSubmitError('Please fill in all required fields.');
+      return;
+    }
+    setGenerating(true);
+    setProgress(0);
     try {
       const doc = new jsPDF({ unit: 'pt', format: 'a4' });
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
+      
+      setProgress(10);
       
       // Header with gradient-like effect
       doc.setFillColor(188, 158, 123);
@@ -439,7 +508,7 @@ function App() {
       
       // Agent Information Box
       doc.setFillColor(250, 248, 246);
-      doc.rect(40, y, pageWidth - 80, 100, 'FD');
+      doc.rect(40, y, pageWidth - 80, 140, 'FD');
       
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(14);
@@ -450,9 +519,12 @@ function App() {
       doc.text(`Salesperson: ${form.name}`, 50, y + 40);
       doc.text(`CEA Registration: ${form.cea}`, 50, y + 55);
       doc.text(`Mobile: ${form.mobile}`, 50, y + 70);
-      doc.text(`Role: ${form.role || 'Not specified'}`, 50, y + 85);
+      doc.text(`Company: ${form.agentCompany || 'Not specified'}`, 50, y + 85);
+      doc.text(`Email: ${form.agentEmail || 'Not specified'}`, 50, y + 100);
+      doc.text(`Property Size: ${form.propertySize || 'Not specified'}`, 50, y + 115);
       
-      y += 120;
+      y += 160;
+      setProgress(20);
       
       // Parties Information Box
       doc.setFillColor(250, 248, 246);
@@ -474,6 +546,34 @@ function App() {
       }
       
       y += 100;
+      
+      // Property Condition & Details Section
+      if (y > 600) {
+        doc.addPage();
+        y = 40;
+      }
+      
+      doc.setFillColor(250, 248, 246);
+      doc.rect(40, y, pageWidth - 80, 120, 'FD');
+      
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.text('PROPERTY ASSESSMENT', 50, y + 20);
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.text(`Property Condition: ${form.propertyCondition || 'Not assessed'}`, 50, y + 40);
+      doc.text(`Number of Rooms: ${form.numberOfRooms || 'Not specified'}`, 50, y + 55);
+      
+      if (form.specialNotes) {
+        doc.text('Special Notes:', 50, y + 70);
+        const specialNotesLines = doc.splitTextToSize(form.specialNotes, pageWidth - 100);
+        doc.text(specialNotesLines, 50, y + 85);
+      }
+      
+      y += 140;
+      setProgress(30);
+      
       // Inventory Section
       if (['HDB', 'Condo', 'Landed'].includes(form.propertyType)) {
         // Check if we need a new page
@@ -482,34 +582,110 @@ function App() {
           y = 40;
         }
         
-        doc.setFillColor(250, 248, 246);
-        doc.rect(40, y, pageWidth - 80, 200, 'FD');
-        
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(14);
-        doc.text('INVENTORY CHECKLIST', 50, y + 20);
-        
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(10);
-        let inventoryY = y + 40;
-        
+        // Collect all inventory items first
+        const allInventoryItems = [];
         rooms.forEach(room => {
-          const checkedItems = (inventory[room.key] ? Object.entries(inventory[room.key]) : []).filter(([idx, item]) => item.checked);
+          const checkedItems = (inventory[room.key] ? Object.entries(inventory[room.key]) : []).filter(([idx, item]) => item.checked && item.qty > 0);
           if (checkedItems.length > 0) {
-            doc.setFont('helvetica', 'bold');
-            doc.text(`${room.name}:`, 50, inventoryY);
-            inventoryY += 15;
-            doc.setFont('helvetica', 'normal');
-            checkedItems.forEach(([idx, item]) => {
-              doc.text(`✓ ${room.items[idx]} (Qty: ${item.qty})`, 60, inventoryY);
-              inventoryY += 12;
+            allInventoryItems.push({
+              roomName: room.name,
+              items: checkedItems.map(([idx, item]) => ({
+                name: room.items[idx],
+                qty: item.qty
+              }))
             });
-            inventoryY += 5;
           }
         });
         
-        y += 220;
+        // If no inventory items, skip this section
+        if (allInventoryItems.length === 0) {
+          // Still add a small section to indicate no items
+          doc.setFillColor(250, 248, 246);
+          doc.rect(40, y, pageWidth - 80, 80, 'FD');
+          
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(14);
+          doc.text('INVENTORY CHECKLIST', 50, y + 20);
+          
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(10);
+          doc.text('No inventory items checked', 50, y + 40);
+          
+          y += 100;
+        } else {
+          // Process inventory with proper pagination
+          let currentPageStart = 0;
+          let isFirstInventoryPage = true;
+          
+          while (currentPageStart < allInventoryItems.length) {
+            // Check if we need a new page
+            if (y > 600) {
+              doc.addPage();
+              y = 40;
+            }
+            
+            // Calculate how many rooms can fit on this page
+            const maxItemsPerPage = Math.floor((pageHeight - y - 100) / 20); // 20pt per item
+            const itemsOnThisPage = Math.min(maxItemsPerPage, allInventoryItems.length - currentPageStart);
+            
+            // Add inventory section header
+            doc.setFillColor(250, 248, 246);
+            doc.rect(40, y, pageWidth - 80, Math.min(200, (itemsOnThisPage * 20) + 60), 'FD');
+            
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(14);
+            doc.text('INVENTORY CHECKLIST', 50, y + 20);
+            
+            if (isFirstInventoryPage) {
+              doc.setFont('helvetica', 'normal');
+              doc.setFontSize(10);
+              doc.text(`Total Rooms: ${allInventoryItems.length}`, 50, y + 40);
+              y += 20;
+            }
+            
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(10);
+            let inventoryY = y + (isFirstInventoryPage ? 60 : 40);
+            
+            // Add rooms for this page
+            for (let i = currentPageStart; i < currentPageStart + itemsOnThisPage; i++) {
+              const room = allInventoryItems[i];
+              
+              // Check if we need a new page for this room
+              if (inventoryY > pageHeight - 100) {
+                doc.addPage();
+                inventoryY = 60;
+              }
+              
+              doc.setFont('helvetica', 'bold');
+              doc.text(`${room.roomName}:`, 50, inventoryY);
+              inventoryY += 15;
+              
+              doc.setFont('helvetica', 'normal');
+              room.items.forEach(item => {
+                // Check if we need a new page for this item
+                if (inventoryY > pageHeight - 100) {
+                  doc.addPage();
+                  inventoryY = 60;
+                }
+                
+                doc.text(`✓ ${item.name} (Qty: ${item.qty})`, 60, inventoryY);
+                inventoryY += 12;
+              });
+              
+              inventoryY += 8; // Space between rooms
+            }
+            
+            currentPageStart += itemsOnThisPage;
+            isFirstInventoryPage = false;
+            
+            // Update y position for next section
+            y = inventoryY + 20;
+          }
+        }
       }
+      setProgress(50);
+      
       // Photos Section
       if (photos.length > 0) {
         // Check if we need a new page
@@ -525,9 +701,13 @@ function App() {
         doc.setFontSize(14);
         doc.text('PHOTO DOCUMENTATION', 50, y + 20);
         
-        let photoY = y + 40;
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        doc.text(`Total Photos: ${photos.length}`, 50, y + 40);
+        
+        let photoY = y + 60;
         let photosPerPage = 0;
-        const maxPhotosPerPage = 3; // 3 photos per page for better layout
+        const maxPhotosPerPage = 8; // 8 photos per page for maximum space utilization
         
         for (let i = 0; i < photos.length; i++) {
           // Check if we need a new page for photos
@@ -536,6 +716,17 @@ function App() {
             y = 40;
             photoY = y + 40;
             photosPerPage = 0;
+            
+            // Add header for new photo page
+            doc.setFillColor(250, 248, 246);
+            doc.rect(40, y, pageWidth - 80, 60, 'FD');
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(14);
+            doc.text('PHOTO DOCUMENTATION (continued)', 50, y + 20);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(10);
+            doc.text(`Photos ${i + 1}-${Math.min(i + maxPhotosPerPage, photos.length)} of ${photos.length}`, 50, y + 40);
+            photoY = y + 60;
           }
           
           // Further compress for PDF (images are already compressed when added)
@@ -548,26 +739,63 @@ function App() {
               useWebWorker: true
             });
             imgData = await imageCompression.getDataUrlFromFile(compressed);
-          } catch (e) { /* fallback to original */ }
-          
-          // Add image with border
-          doc.setDrawColor(188, 158, 123);
-          doc.rect(50, photoY, 100, 75, 'S');
-          doc.addImage(imgData, 'JPEG', 50, photoY, 100, 75);
-          
-          // Add comment if exists
-          if (photos[i].comment) {
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(9);
-            doc.text(`Photo ${i + 1}: ${photos[i].comment}`, 160, photoY + 20, { maxWidth: 300 });
+          } catch (e) { 
+            console.warn('Image compression failed, using original:', e);
+            // fallback to original 
           }
           
-          photoY += 90;
+          // Add image with border (smaller size for more photos per page)
+          doc.setDrawColor(188, 158, 123);
+          doc.rect(50, photoY, 80, 60, 'S');
+          
+          try {
+            doc.addImage(imgData, 'JPEG', 50, photoY, 80, 60);
+          } catch (e) {
+            console.warn('Failed to add image to PDF:', e);
+            // Add placeholder text if image fails
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(8);
+            doc.text('Image failed to load', 55, photoY + 30);
+          }
+          
+          // Add comment if exists (smaller text)
+          if (photos[i].comment) {
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(8);
+            doc.text(`Photo ${i + 1}: ${photos[i].comment}`, 140, photoY + 15, { maxWidth: 200 });
+          }
+          
+          photoY += 70; // Reduced spacing between photos
           photosPerPage++;
         }
         
         y += 320;
       }
+      setProgress(70);
+      
+      // Recommendations Section
+      if (form.recommendations) {
+        if (y > 500) {
+          doc.addPage();
+          y = 40;
+        }
+        
+        doc.setFillColor(250, 248, 246);
+        doc.rect(40, y, pageWidth - 80, 100, 'FD');
+        
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(14);
+        doc.text('RECOMMENDATIONS', 50, y + 20);
+        
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        const recommendationsLines = doc.splitTextToSize(form.recommendations, pageWidth - 100);
+        doc.text(recommendationsLines, 50, y + 40);
+        
+        y += 120;
+      }
+      
+      setProgress(80);
       
       // Signature Section
       if (y > 500) {
@@ -659,28 +887,342 @@ function App() {
         }
       }
       
+      // Summary Section
+      if (y > 400) {
+        doc.addPage();
+        y = 40;
+      }
+      
+      doc.setFillColor(250, 248, 246);
+      doc.rect(40, y, pageWidth - 80, 120, 'FD');
+      
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.text('REPORT SUMMARY', 50, y + 20);
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      
+      // Calculate summary statistics
+      const totalInventoryItems = Object.values(inventory).reduce((total, room) => {
+        return total + Object.values(room).filter(item => item.checked && item.qty > 0).length;
+      }, 0);
+      
+      const totalPhotos = photos.length;
+      const totalRooms = rooms.length;
+      
+      doc.text(`Total Rooms Inspected: ${totalRooms}`, 50, y + 40);
+      doc.text(`Total Inventory Items: ${totalInventoryItems}`, 50, y + 55);
+      doc.text(`Total Photos Documented: ${totalPhotos}`, 50, y + 70);
+      doc.text(`Report Generated: ${new Date().toLocaleString()}`, 50, y + 85);
+      
+      y += 140;
+      setProgress(90);
+      
       // Footer
       doc.setFont('helvetica', 'italic');
       doc.setFontSize(10);
       doc.setTextColor(107, 81, 63);
       doc.text('Powered by #thepeoplesagency 2025', 40, pageHeight - 20);
+      doc.text('Professional Property Handover Report', 40, pageHeight - 35);
       // Save
       let pdfBlob = doc.output('blob');
-      // If over 5MB, warn user (increased limit for more photos)
-      if (pdfBlob.size > 5 * 1024 * 1024) {
-        setSubmitError('PDF is too large (>5MB). Try reducing the number of photos or contact support for larger reports.');
+      // If over 10MB, warn user (increased limit for more photos)
+      if (pdfBlob.size > 10 * 1024 * 1024) {
+        setSubmitError('PDF is too large (>10MB). Try reducing the number of photos or contact support for larger reports.');
         setGenerating(false);
         return;
       }
-      doc.save('handover-report.pdf');
-    } catch (err) {
+      setProgress(100);
+      doc.save(generateFilename());
+    } catch {
       setSubmitError('Failed to generate PDF. Please try again.');
     }
     setGenerating(false);
+    setProgress(0);
+  };
+
+  // Compact PDF generation with optimized layout
+  const generateCompactPDF = async () => {
+    setGenerating(true);
+    setProgress(0);
+    try {
+      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      
+      setProgress(10);
+      
+      // Compact header
+      doc.setFillColor(188, 158, 123);
+      doc.rect(0, 0, pageWidth, 60, 'F');
+      
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(20);
+      doc.text('PROPERTY HANDOVER REPORT', 40, 35);
+      
+      doc.setTextColor(66, 45, 42);
+      let y = 100;
+      
+      // Combined information section
+      doc.setFillColor(250, 248, 246);
+      doc.rect(40, y, pageWidth - 80, 200, 'FD');
+      
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.text('PROPERTY & AGENT INFORMATION', 50, y + 20);
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.text(`Property: ${form.address}`, 50, y + 40);
+      doc.text(`Type: ${form.propertyType || 'Not specified'} | Size: ${form.propertySize || 'Not specified'}`, 50, y + 55);
+      doc.text(`Agent: ${form.name} (CEA: ${form.cea}) | Mobile: ${form.mobile}`, 50, y + 70);
+      doc.text(`Date: ${form.date} | Inspection: ${form.inspectionDate} ${form.inspectionTime}`, 50, y + 85);
+      
+      if (form.transactionType === 'sale') {
+        doc.text(`Vendor: ${form.vendorPurchaserName || 'Not specified'} | Purchaser: ${form.purchaserName || 'Not specified'}`, 50, y + 100);
+      } else if (form.transactionType === 'rental') {
+        doc.text(`Landlord: ${form.landlordTenantName || 'Not specified'} | Tenant: ${form.tenantName || 'Not specified'}`, 50, y + 100);
+      }
+      
+      if (form.propertyCondition) {
+        doc.text(`Condition: ${form.propertyCondition}`, 50, y + 115);
+      }
+      
+      if (form.specialNotes) {
+        const notesLines = doc.splitTextToSize(`Notes: ${form.specialNotes}`, pageWidth - 100);
+        doc.text(notesLines, 50, y + 130);
+      }
+      
+      y += 220;
+      setProgress(30);
+      
+      // Compact inventory
+      if (['HDB', 'Condo', 'Landed'].includes(form.propertyType)) {
+        if (y > 600) {
+          doc.addPage();
+          y = 40;
+        }
+        
+        doc.setFillColor(250, 248, 246);
+        doc.rect(40, y, pageWidth - 80, 150, 'FD');
+        
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.text('INVENTORY SUMMARY', 50, y + 20);
+        
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        let inventoryY = y + 40;
+        
+        const allInventoryItems = [];
+        rooms.forEach(room => {
+          const checkedItems = (inventory[room.key] ? Object.entries(inventory[room.key]) : []).filter(([idx, item]) => item.checked && item.qty > 0);
+          if (checkedItems.length > 0) {
+            allInventoryItems.push({
+              roomName: room.name,
+              items: checkedItems.map(([idx, item]) => `${room.items[idx]} (${item.qty})`)
+            });
+          }
+        });
+        
+        allInventoryItems.forEach(room => {
+          if (inventoryY > pageHeight - 100) {
+            doc.addPage();
+            inventoryY = 60;
+          }
+          
+          doc.setFont('helvetica', 'bold');
+          doc.text(`${room.roomName}:`, 50, inventoryY);
+          inventoryY += 12;
+          
+          doc.setFont('helvetica', 'normal');
+          room.items.forEach(item => {
+            if (inventoryY > pageHeight - 100) {
+              doc.addPage();
+              inventoryY = 60;
+            }
+            doc.text(`• ${item}`, 60, inventoryY);
+            inventoryY += 10;
+          });
+          inventoryY += 5;
+        });
+        
+        y += 170;
+      }
+      setProgress(50);
+      
+      // Compact photos
+      if (photos.length > 0) {
+        if (y > 400) {
+          doc.addPage();
+          y = 40;
+        }
+        
+        doc.setFillColor(250, 248, 246);
+        doc.rect(40, y, pageWidth - 80, 200, 'FD');
+        
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.text(`PHOTO DOCUMENTATION (${photos.length} photos)`, 50, y + 20);
+        
+        let photoY = y + 40;
+        let photosPerPage = 0;
+        const maxPhotosPerPage = 6;
+        
+        for (let i = 0; i < Math.min(photos.length, 12); i++) { // Limit to 12 photos in compact
+          if (photosPerPage >= maxPhotosPerPage) {
+            doc.addPage();
+            photoY = 40;
+            photosPerPage = 0;
+          }
+          
+          let imgData = photos[i].url;
+          try {
+            const file = await fetch(imgData).then(r => r.blob());
+            const compressed = await imageCompression(file, { 
+              maxWidthOrHeight: 200,
+              maxSizeMB: 0.05,
+              useWebWorker: true
+            });
+            imgData = await imageCompression.getDataUrlFromFile(compressed);
+          } catch (e) { /* fallback */ }
+          
+          doc.setDrawColor(188, 158, 123);
+          doc.rect(50, photoY, 60, 45, 'S');
+          
+          try {
+            doc.addImage(imgData, 'JPEG', 50, photoY, 60, 45);
+          } catch (e) {
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(8);
+            doc.text('Photo', 55, photoY + 25);
+          }
+          
+          photoY += 55;
+          photosPerPage++;
+        }
+        
+        y += 220;
+      }
+      setProgress(70);
+      
+      // Improved signature section
+      if (y > 300) {
+        doc.addPage();
+        y = 40;
+      }
+      
+      doc.setFillColor(250, 248, 246);
+      doc.rect(40, y, pageWidth - 80, 200, 'FD');
+      
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.text('SIGNATURES', 50, y + 20);
+      
+      // Agent signature
+      doc.setDrawColor(59, 130, 246);
+      doc.rect(50, y + 40, 200, 50, 'S');
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.text('Agent Signature', 55, y + 55);
+      doc.text(`Name: ${form.name}`, 55, y + 70);
+      doc.text(`CEA: ${form.cea}`, 55, y + 85);
+      
+      if (signatures.agent) {
+        try {
+          doc.addImage(signatures.agent, 'PNG', 55, y + 45, 180, 20);
+        } catch (e) {
+          doc.text('Signature captured', 55, y + 90);
+        }
+      }
+      
+      // Transaction signatures - side by side layout
+      if (form.transactionType === 'sale') {
+        // Vendor signature
+        doc.rect(300, y + 40, 200, 50, 'S');
+        doc.text('Vendor Signature', 305, y + 55);
+        doc.text(`Name: ${form.vendorPurchaserName || '________________'}`, 305, y + 70);
+        doc.text('Date: ________________', 305, y + 85);
+        
+        if (signatures.vendor) {
+          try {
+            doc.addImage(signatures.vendor, 'PNG', 305, y + 45, 180, 20);
+          } catch (e) {
+            doc.text('Signature captured', 305, y + 90);
+          }
+        }
+        
+        // Purchaser signature
+        doc.rect(50, y + 110, 200, 50, 'S');
+        doc.text('Purchaser Signature', 55, y + 125);
+        doc.text(`Name: ${form.purchaserName || '________________'}`, 55, y + 140);
+        doc.text('Date: ________________', 55, y + 155);
+        
+        if (signatures.purchaser) {
+          try {
+            doc.addImage(signatures.purchaser, 'PNG', 55, y + 115, 180, 20);
+          } catch (e) {
+            doc.text('Signature captured', 55, y + 160);
+          }
+        }
+      } else if (form.transactionType === 'rental') {
+        // Landlord signature
+        doc.rect(300, y + 40, 200, 50, 'S');
+        doc.text('Landlord Signature', 305, y + 55);
+        doc.text(`Name: ${form.landlordTenantName || '________________'}`, 305, y + 70);
+        doc.text('Date: ________________', 305, y + 85);
+        
+        if (signatures.landlord) {
+          try {
+            doc.addImage(signatures.landlord, 'PNG', 305, y + 45, 180, 20);
+          } catch (e) {
+            doc.text('Signature captured', 305, y + 90);
+          }
+        }
+        
+        // Tenant signature
+        doc.rect(50, y + 110, 200, 50, 'S');
+        doc.text('Tenant Signature', 55, y + 125);
+        doc.text(`Name: ${form.tenantName || '________________'}`, 55, y + 140);
+        doc.text('Date: ________________', 55, y + 155);
+        
+        if (signatures.tenant) {
+          try {
+            doc.addImage(signatures.tenant, 'PNG', 55, y + 115, 180, 20);
+          } catch (e) {
+            doc.text('Signature captured', 55, y + 160);
+          }
+        }
+      }
+      
+      setProgress(90);
+      
+      // Footer
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(10);
+      doc.setTextColor(107, 81, 63);
+      doc.text('Powered by #thepeoplesagency 2025', 40, pageHeight - 20);
+      
+      setProgress(100);
+      doc.save(generateFilename());
+    } catch {
+      setSubmitError('Failed to generate compact PDF. Please try again.');
+    }
+    setGenerating(false);
+    setProgress(0);
+  };
+
+
+  // Helper function to generate consistent filename
+  const generateFilename = () => {
+    const cleanAddress = form.address.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_').substring(0, 50);
+    return `Inventory_Report_${cleanAddress}_Powered_by_thepeoplesagency.pdf`;
   };
 
   // Validation
-  const required = ['name', 'cea', 'mobile', 'address'];
+  const _required = ['name', 'cea', 'mobile', 'address'];
   const isFieldInvalid = (field) => !form[field] && formTouched[field];
 
   // Only show inventory for HDB, Condo, Landed
@@ -690,11 +1232,17 @@ function App() {
     <div className="handover-app-root">
       {/* Header */}
       <header className="handover-header">
-        <h1>Welcome to Handover!</h1>
+        <div className="handover-logo-container">
+          <img 
+            src="/png/120x120.png" 
+            alt="Handover App Logo" 
+            className="handover-main-logo"
+          />
+        </div>
+        <h1 className="handover-header-interactive">Welcome to Handover!</h1>
         <p className="handover-intro">
-          Forget the old-school way — we make handover reports fast, fuss-free, and solid.<br/>
-          Whether it's HDB, Condo, Landed, Commercial, or Industrial — we got your back.<br/>
-          Let's go digital, Smart <span className="singapore-text">Singapore!</span> <span className="rocket-emoji">🚀</span>
+          <span className="modern-typing-text">{displayText}</span>
+          <span className="modern-cursor">|</span>
         </p>
       </header>
 
@@ -702,6 +1250,7 @@ function App() {
       <main className="handover-main">
         {/* Form Section */}
         <section className="handover-section handover-form-card">
+          <h2 className="handover-section-title">Property & Agent Details</h2>
           <form className="handover-form" autoComplete="off">
             <div className="handover-form-group">
               <label>
@@ -748,6 +1297,33 @@ function App() {
                 />
               </label>
             </div>
+            
+            <div className="handover-form-group">
+              <label>
+                Agent Company
+                <input
+                  type="text"
+                  name="agentCompany"
+                  value={form.agentCompany}
+                  onChange={handleChange}
+                  placeholder="Your company name"
+                />
+              </label>
+            </div>
+            
+            <div className="handover-form-group">
+              <label>
+                Agent Email
+                <input
+                  type="email"
+                  name="agentEmail"
+                  value={form.agentEmail}
+                  onChange={handleChange}
+                  placeholder="your.email@company.com"
+                />
+              </label>
+            </div>
+            
             <div className="handover-form-group">
               <label>
                 Property Address <span className="handover-required">*</span>
@@ -875,12 +1451,82 @@ function App() {
                 />
               </label>
             </div>
+            
+            {/* Enhanced Property Details */}
+            <div className="handover-form-group">
+              <label>
+                Property Size (sqft)
+                <input
+                  type="text"
+                  name="propertySize"
+                  value={form.propertySize}
+                  onChange={handleChange}
+                  placeholder="e.g., 1200 sqft"
+                />
+              </label>
+            </div>
+            
+            <div className="handover-form-group">
+              <label>
+                Number of Rooms
+                <input
+                  type="number"
+                  name="numberOfRooms"
+                  value={form.numberOfRooms}
+                  onChange={handleChange}
+                  placeholder="e.g., 4"
+                  min="1"
+                />
+              </label>
+            </div>
+            
+            <div className="handover-form-group">
+              <label>
+                Property Condition
+                <select name="propertyCondition" value={form.propertyCondition} onChange={handleChange}>
+                  <option value="">Select Condition</option>
+                  <option value="Excellent">Excellent</option>
+                  <option value="Good">Good</option>
+                  <option value="Fair">Fair</option>
+                  <option value="Poor">Poor</option>
+                  <option value="Needs Renovation">Needs Renovation</option>
+                </select>
+              </label>
+            </div>
+            
+            <div className="handover-form-group">
+              <label>
+                Special Notes
+                <textarea
+                  name="specialNotes"
+                  value={form.specialNotes}
+                  onChange={handleChange}
+                  placeholder="Any special observations or notes about the property..."
+                  rows={3}
+                />
+              </label>
+            </div>
+            
+            <div className="handover-form-group">
+              <label>
+                Recommendations
+                <textarea
+                  name="recommendations"
+                  value={form.recommendations}
+                  onChange={handleChange}
+                  placeholder="Any recommendations for the property..."
+                  rows={3}
+                />
+              </label>
+            </div>
+            
           </form>
         </section>
 
         {/* Inventory Section */}
         {showInventory && (
           <section className="handover-section handover-inventory-card">
+            <h2 className="handover-section-title">Property Inventory</h2>
             <div className="handover-inventory-list">
               {rooms.map((room, rIdx) => (
                 <div key={room.key} className="handover-room-card">
@@ -904,32 +1550,58 @@ function App() {
                   >
                     {expanded[room.key] && (
                       <div className="handover-room-items">
-                        {room.items.map((item, iIdx) => (
-                          <div key={iIdx} className="handover-inventory-item">
-                            <input
-                              type="checkbox"
-                              checked={!!(inventory[room.key]?.[iIdx]?.checked)}
-                              onChange={() => handleItemCheck(room.key, iIdx)}
-                              id={`inv-${room.key}-${iIdx}`}
-                            />
-                            <label htmlFor={`inv-${room.key}-${iIdx}`}>{item}</label>
+                        {room.items.map((item, iIdx) => {
+                          // Check if this is a custom item (added after the default items)
+                          const isCustomItem = iIdx >= (defaultRooms.find(r => r.key === room.key)?.items.length || 0);
+                          
+                          return (
+                            <div key={iIdx} className="handover-inventory-item">
+                              <input
+                                type="checkbox"
+                                checked={!!(inventory[room.key]?.[iIdx]?.checked)}
+                                onChange={() => handleItemCheck(room.key, iIdx)}
+                                id={`inv-${room.key}-${iIdx}`}
+                              />
+                              <label htmlFor={`inv-${room.key}-${iIdx}`}>{item}</label>
                             <input
                               type="number"
-                              min={1}
-                              value={inventory[room.key]?.[iIdx]?.qty || 1}
+                              min={0}
+                              value={inventory[room.key]?.[iIdx]?.qty || 0}
                               onChange={e => handleQtyChange(room.key, iIdx, e.target.value)}
                               className="handover-qty-input"
                               style={{ width: 50, marginLeft: 8 }}
                               disabled={!inventory[room.key]?.[iIdx]?.checked}
                             />
-                          </div>
-                        ))}
+                              {isCustomItem && (
+                                <button
+                                  type="button"
+                                  className="handover-remove-custom-btn"
+                                  onClick={() => handleRemoveCustomItem(room.key, iIdx)}
+                                  title="Remove custom item"
+                                  style={{ 
+                                    marginLeft: 8, 
+                                    padding: '2px 6px', 
+                                    fontSize: '12px',
+                                    backgroundColor: '#ff4444',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '3px',
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  ×
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
                         <button
                           type="button"
                           className="handover-add-custom-btn"
                           onClick={() => handleAddCustomItem(room.key)}
+                          title="Add unlimited custom items"
                         >
-                          + Add Custom Item
+                          + Add Custom Item (Unlimited)
                         </button>
                       </div>
                     )}
@@ -950,6 +1622,7 @@ function App() {
 
         {/* Photo Capture Section */}
         <section className="handover-section handover-photo-card">
+          <h2 className="handover-section-title">Property Photos</h2>
           <div className="handover-photo-header">
             <div className="handover-photo-header-left">
               <button
@@ -957,13 +1630,13 @@ function App() {
                 className="handover-photo-add-btn"
                 onClick={handleAddPhotoClick}
                 aria-label="Add Photo"
-                disabled={photos.length >= 30}
+                disabled={photos.length >= 100}
               >
                 <span role="img" aria-label="camera" style={{ marginRight: 8 }}>📷</span>
                 Add Photo
               </button>
               <span className="handover-photo-counter">
-                {photos.length}/30 photos
+                {photos.length}/100 photos
               </span>
             </div>
             <input
@@ -1003,7 +1676,7 @@ function App() {
 
         {/* Signature Section */}
         <section className="handover-section handover-signature-card">
-          <h3 className="handover-signature-title">Digital Signatures</h3>
+          <h2 className="handover-section-title">Digital Signatures</h2>
           
           {/* Agent Signature */}
           <div className="handover-signature-group">
@@ -1156,16 +1829,77 @@ function App() {
         {/* Submit Button */}
         <section className="handover-section handover-submit-card">
           {submitError && <div className="handover-error-msg">{submitError}</div>}
+          
+          {generating && (
+            <div className="handover-progress-container" style={{ marginBottom: '20px' }}>
+              <div className="handover-progress-bar" style={{ width: `${progress}%` }}></div>
+              <div style={{ textAlign: 'center', marginTop: '0.5rem', color: '#bc9e7b', fontWeight: '600' }}>
+                {progress < 30 && 'Preparing document...'}
+                {progress >= 30 && progress < 50 && 'Processing inventory...'}
+                {progress >= 50 && progress < 70 && 'Adding photos...'}
+                {progress >= 70 && progress < 90 && 'Finalizing report...'}
+                {progress >= 90 && 'Almost done...'}
+              </div>
+            </div>
+          )}
+          
           <button
             className="handover-submit-btn"
             onClick={handleGeneratePDF}
             disabled={generating}
             type="button"
           >
-            {generating ? 'Generating PDF...' : 'Generate PDF'}
+            {generating ? `Generating PDF... ${progress}%` : 'Generate PDF Report'}
           </button>
         </section>
       </main>
+
+      {/* Installation Guide Section */}
+      <section className="handover-section handover-install-card">
+        <div className="handover-install-content">
+          <h3 className="handover-install-title">📱 Install This App on Your Phone</h3>
+          <p className="handover-install-description">
+            Add this app to your home screen for quick access and better experience!
+          </p>
+          
+          <div className="handover-install-steps">
+            <div className="handover-install-step">
+              <div className="handover-step-number">1</div>
+              <div className="handover-step-content">
+                <h4>iPhone Users</h4>
+                <p>Tap the <strong>Share button</strong> (□↑) → <strong>"Add to Home Screen"</strong> → <strong>"Add"</strong></p>
+              </div>
+            </div>
+            
+            <div className="handover-install-step">
+              <div className="handover-step-number">2</div>
+              <div className="handover-step-content">
+                <h4>Android Users</h4>
+                <p>Tap the <strong>Menu</strong> (⋮) → <strong>"Add to Home screen"</strong> → <strong>"Add"</strong></p>
+              </div>
+            </div>
+            
+            <div className="handover-install-step">
+              <div className="handover-step-number">3</div>
+              <div className="handover-step-content">
+                <h4>Desktop Users</h4>
+                <p>Look for the <strong>Install icon</strong> (⊕) in your browser address bar and click it</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="handover-install-benefits">
+            <h4>✨ Benefits of Installing:</h4>
+            <ul>
+              <li>🚀 <strong>Faster access</strong> - Launch like a native app</li>
+              <li>📱 <strong>Home screen icon</strong> - Easy to find and use</li>
+              <li>💾 <strong>Offline capability</strong> - Works without internet</li>
+              <li>🔄 <strong>Auto-updates</strong> - Always get the latest features</li>
+              <li>🔔 <strong>Notifications</strong> - Stay updated on new features</li>
+            </ul>
+          </div>
+        </div>
+      </section>
 
       {/* Signup Section */}
       <section className="handover-section handover-signup-card">

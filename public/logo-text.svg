@@ -1,0 +1,49 @@
+<svg width="200" height="60" viewBox="0 0 200 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Modern gradient for text -->
+    <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#bc9e7b;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#8b6f47;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#6b5b47;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Subtle background -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f8fafc;stop-opacity:0.5" />
+      <stop offset="100%" style="stop-color:#e2e8f0;stop-opacity:0.3" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="200" height="60" fill="url(#bgGradient)" rx="8"/>
+  
+  <!-- House icon -->
+  <g transform="translate(15, 15)">
+    <!-- House structure -->
+    <path d="M5 20L15 10L25 20V30C25 31.1046 24.1046 32 23 32H7C5.89543 32 5 31.1046 5 30V20Z" 
+          fill="url(#textGradient)"/>
+    
+    <!-- Door -->
+    <rect x="12" y="25" width="6" height="7" fill="#422d2a" rx="1"/>
+    <circle cx="16" cy="28" r="0.5" fill="#bc9e7b"/>
+    
+    <!-- Windows -->
+    <rect x="8" y="22" width="3" height="3" fill="#422d2a" rx="0.5"/>
+    <rect x="19" y="22" width="3" height="3" fill="#422d2a" rx="0.5"/>
+  </g>
+  
+  <!-- App name -->
+  <text x="50" y="25" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" 
+        font-size="18" font-weight="700" fill="url(#textGradient)">
+    Handover
+  </text>
+  
+  <!-- Tagline -->
+  <text x="50" y="40" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" 
+        font-size="10" font-weight="500" fill="#64748b">
+    Property Reports
+  </text>
+  
+  <!-- Decorative line -->
+  <line x1="50" y1="45" x2="180" y2="45" stroke="url(#textGradient)" stroke-width="1" opacity="0.3"/>
+</svg>

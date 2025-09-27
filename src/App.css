@@ -5,9 +5,9 @@ body, #root, .handover-app-root {
   font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: 
     linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #f1f5f9 100%),
-    radial-gradient(circle at 20% 80%, rgba(237, 41, 57, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.2) 0%, transparent 50%),
-    radial-gradient(circle at 40% 40%, rgba(237, 41, 57, 0.05) 0%, transparent 50%);
+    radial-gradient(circle at 20% 80%, rgba(188, 158, 123, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.3) 0%, transparent 50%),
+    radial-gradient(circle at 40% 40%, rgba(188, 158, 123, 0.08) 0%, transparent 50%);
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
@@ -59,23 +59,95 @@ body, #root, .handover-app-root {
 
 .handover-header {
   text-align: center;
-  padding: 3rem 1rem 2rem 1rem;
-  color: #0f172a;
-  font-size: 2.2rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  padding: 3rem 2rem 2rem 2rem;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 0 0 2rem 2rem;
+  box-shadow: 0 20px 40px rgba(188, 158, 123, 0.15);
+  margin-bottom: 2rem;
   position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(188, 158, 123, 0.1);
 }
 
 .handover-header h1 {
-  font-size: 2.5rem;
+  font-size: 2.8rem;
   font-weight: 800;
   margin-bottom: 1rem;
-  color: #422d2a;
+  background: linear-gradient(135deg, #bc9e7b 0%, #8b6f47 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   letter-spacing: -0.02em;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  text-shadow: 0 4px 8px rgba(188, 158, 123, 0.2);
   position: relative;
 }
+
+.handover-header-interactive {
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-block;
+}
+
+.handover-header-interactive:hover {
+  transform: scale(1.05);
+  filter: brightness(1.1);
+}
+
+/* Main Logo Styles */
+.handover-logo-container {
+  margin-bottom: 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.handover-main-logo {
+  width: 80px;
+  height: 80px;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(188, 158, 123, 0.2);
+  transition: all 0.3s ease;
+  border: 2px solid rgba(188, 158, 123, 0.1);
+}
+
+.handover-main-logo:hover {
+  transform: scale(1.05);
+  box-shadow: 0 12px 32px rgba(188, 158, 123, 0.3);
+}
+
+/* Modern Typing Effect Styles */
+.modern-typing-text {
+  white-space: pre-line;
+  line-height: 1.3;
+  background: linear-gradient(135deg, #bc9e7b 0%, #8b6f47 50%, #bc9e7b 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  background-size: 200% 200%;
+  animation: gradientShift 4s ease-in-out infinite;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  font-size: 0.95em;
+}
+
+.modern-cursor {
+  animation: modernBlink 1.2s infinite;
+  color: #bc9e7b;
+  font-weight: 300;
+  font-size: 1.1em;
+  margin-left: 2px;
+}
+
+@keyframes modernBlink {
+  0%, 60% { opacity: 1; }
+  61%, 100% { opacity: 0; }
+}
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
 
 @keyframes goldShimmer {
   0%, 100% { 
@@ -91,42 +163,21 @@ body, #root, .handover-app-root {
 }
 
 .handover-intro {
-  max-width: 700px;
-  margin: 1.5rem auto 0 auto;
+  max-width: 600px;
+  margin: 1rem auto 0 auto;
   color: #475569;
-  font-size: 1.2rem;
-  line-height: 1.6;
+  font-size: 1rem;
+  line-height: 1.4;
   font-weight: 500;
   text-align: center;
   background: linear-gradient(135deg, #475569 0%, #64748b 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  padding: 0 1rem;
 }
 
-.singapore-text {
-  background: linear-gradient(135deg, #ed2939 0%, #ffffff 50%, #ed2939 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  font-weight: 700;
-  font-size: 1.2em;
-  text-shadow: 0 2px 4px rgba(237, 41, 57, 0.3);
-  animation: singaporePulse 2s ease-in-out infinite;
-}
 
-@keyframes singaporePulse {
-  0%, 100% { 
-    background: linear-gradient(135deg, #ed2939 0%, #ffffff 50%, #ed2939 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-  }
-  50% { 
-    background: linear-gradient(135deg, #ffffff 0%, #ed2939 50%, #ffffff 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-  }
-}
 
 .rocket-emoji {
   display: inline-block;
@@ -146,9 +197,9 @@ body, #root, .handover-app-root {
 .handover-section {
   border-radius: 24px;
   box-shadow: 
-    0 8px 32px rgba(15, 23, 42, 0.08), 
-    0 4px 16px rgba(15, 23, 42, 0.04),
-    0 0 0 1px rgba(148, 163, 184, 0.1);
+    0 8px 32px rgba(188, 158, 123, 0.12), 
+    0 4px 16px rgba(188, 158, 123, 0.08),
+    0 0 0 1px rgba(188, 158, 123, 0.15);
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -165,16 +216,16 @@ body, #root, .handover-app-root {
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, #3b82f6, #8b5cf6, #06b6d4);
+  background: linear-gradient(90deg, #bc9e7b, #8b6f47, #6b5b47);
   opacity: 0.8;
 }
 
 .handover-section:hover {
   transform: translateY(-4px);
   box-shadow: 
-    0 20px 40px rgba(15, 23, 42, 0.12), 
-    0 8px 24px rgba(15, 23, 42, 0.08),
-    0 0 0 1px rgba(59, 130, 246, 0.1);
+    0 20px 40px rgba(188, 158, 123, 0.18), 
+    0 8px 24px rgba(188, 158, 123, 0.12),
+    0 0 0 1px rgba(188, 158, 123, 0.2);
   background: rgba(255, 255, 255, 0.9);
 }
 
@@ -258,13 +309,13 @@ body, #root, .handover-app-root {
 .handover-form textarea,
 .handover-form select {
   border-radius: 16px;
-  border: 2px solid rgba(148, 163, 184, 0.2);
+  border: 2px solid rgba(188, 158, 123, 0.3);
   padding: 1em 1.2em;
   font-size: 1.05rem;
   color: #1e293b;
   background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(10px);
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+  box-shadow: 0 4px 12px rgba(188, 158, 123, 0.1);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   outline: none;
   margin-top: 0.5rem;
@@ -274,8 +325,8 @@ body, #root, .handover-app-root {
 .handover-form input:focus,
 .handover-form textarea:focus,
 .handover-form select:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1), 0 8px 20px rgba(15, 23, 42, 0.08);
+  border-color: #bc9e7b;
+  box-shadow: 0 0 0 3px rgba(188, 158, 123, 0.2), 0 8px 20px rgba(188, 158, 123, 0.15);
   transform: translateY(-2px);
   background: rgba(255, 255, 255, 1);
 }
@@ -592,12 +643,12 @@ body, #root, .handover-app-root {
 }
 
 .handover-signature-canvas:hover {
-  border-color: #3b82f6;
-  box-shadow: 0 8px 20px rgba(59, 130, 246, 0.1);
+  border-color: #bc9e7b;
+  box-shadow: 0 8px 20px rgba(188, 158, 123, 0.2);
 }
 
 .handover-signature-clear {
-  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+  background: linear-gradient(135deg, #bc9e7b 0%, #8b6f47 100%);
   color: white;
   border: none;
   border-radius: 12px;
@@ -606,13 +657,13 @@ body, #root, .handover-app-root {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
+  box-shadow: 0 4px 12px rgba(188, 158, 123, 0.3);
 }
 
 .handover-signature-clear:hover {
-  background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+  background: linear-gradient(135deg, #8b6f47 0%, #6b5b47 100%);
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(107, 114, 128, 0.4);
+  box-shadow: 0 6px 16px rgba(188, 158, 123, 0.4);
 }
 
 /* Reset Buttons */
@@ -635,7 +686,7 @@ body, #root, .handover-app-root {
 }
 
 .handover-reset-btn {
-  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+  background: linear-gradient(135deg, #bc9e7b 0%, #8b6f47 100%);
   color: white;
   border: none;
   border-radius: 12px;
@@ -644,34 +695,34 @@ body, #root, .handover-app-root {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
+  box-shadow: 0 4px 12px rgba(188, 158, 123, 0.3);
   min-width: 140px;
 }
 
 .handover-reset-btn:hover {
-  background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+  background: linear-gradient(135deg, #8b6f47 0%, #6b5b47 100%);
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(107, 114, 128, 0.4);
+  box-shadow: 0 6px 16px rgba(188, 158, 123, 0.4);
 }
 
 .handover-reset-agent {
-  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
-  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
+  background: linear-gradient(135deg, #bc9e7b 0%, #8b6f47 100%);
+  box-shadow: 0 4px 12px rgba(188, 158, 123, 0.3);
 }
 
 .handover-reset-agent:hover {
-  background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
-  box-shadow: 0 6px 16px rgba(107, 114, 128, 0.4);
+  background: linear-gradient(135deg, #8b6f47 0%, #6b5b47 100%);
+  box-shadow: 0 6px 16px rgba(188, 158, 123, 0.4);
 }
 
 .handover-reset-all {
-  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
-  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
+  background: linear-gradient(135deg, #bc9e7b 0%, #8b6f47 100%);
+  box-shadow: 0 4px 12px rgba(188, 158, 123, 0.3);
 }
 
 .handover-reset-all:hover {
-  background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
-  box-shadow: 0 6px 16px rgba(107, 114, 128, 0.4);
+  background: linear-gradient(135deg, #8b6f47 0%, #6b5b47 100%);
+  box-shadow: 0 6px 16px rgba(188, 158, 123, 0.4);
 }
 
 /* Signup Section */
@@ -854,4 +905,258 @@ body, #root, .handover-app-root {
   margin-bottom: 1em;
   font-size: 1.05em;
   text-align: center;
+}
+
+/* Installation Guide Styles */
+.handover-install-card {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  color: #1e293b;
+  border-radius: 20px;
+  box-shadow: 0 20px 40px rgba(188, 158, 123, 0.15);
+  margin: 2rem 0;
+  overflow: hidden;
+  border: 1px solid rgba(188, 158, 123, 0.2);
+}
+
+.handover-install-content {
+  padding: 2rem;
+}
+
+.handover-install-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  text-align: center;
+  color: #bc9e7b;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.handover-install-title:hover {
+  color: #8b6f47;
+  transform: scale(1.02);
+}
+
+.handover-install-description {
+  font-size: 1.1rem;
+  text-align: center;
+  margin-bottom: 2rem;
+  color: #64748b;
+}
+
+.handover-install-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.handover-install-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  background: rgba(188, 158, 123, 0.05);
+  padding: 1.5rem;
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(188, 158, 123, 0.2);
+}
+
+.handover-step-number {
+  background: linear-gradient(135deg, #bc9e7b 0%, #8b6f47 100%);
+  color: white;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.handover-step-content h4 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #bc9e7b;
+}
+
+.handover-step-content p {
+  font-size: 1rem;
+  line-height: 1.5;
+  margin: 0;
+  color: #64748b;
+}
+
+.handover-install-benefits {
+  background: rgba(188, 158, 123, 0.05);
+  padding: 1.5rem;
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(188, 158, 123, 0.2);
+}
+
+.handover-install-benefits h4 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #bc9e7b;
+}
+
+.handover-install-benefits ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.handover-install-benefits li {
+  padding: 0.5rem 0;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #64748b;
+}
+
+.handover-install-benefits li strong {
+  color: #bc9e7b;
+  font-weight: 600;
+}
+
+/* Enhanced Visual Elements */
+.handover-section-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #bc9e7b;
+  margin-bottom: 1rem;
+  text-align: center;
+  position: relative;
+}
+
+.handover-section-title::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 3px;
+  background: linear-gradient(135deg, #bc9e7b 0%, #8b6f47 100%);
+  border-radius: 2px;
+}
+
+/* Enhanced Form Groups */
+.handover-form-group {
+  position: relative;
+  margin-bottom: 1.5rem;
+}
+
+.handover-form-group label {
+  display: block;
+  font-weight: 600;
+  color: #bc9e7b;
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+}
+
+/* Enhanced Button Styles */
+.handover-btn-secondary {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  color: #bc9e7b;
+  border: 2px solid rgba(188, 158, 123, 0.3);
+  border-radius: 12px;
+  padding: 0.8rem 1.5rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.handover-btn-secondary:hover {
+  background: linear-gradient(135deg, #bc9e7b 0%, #8b6f47 100%);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(188, 158, 123, 0.3);
+}
+
+/* Enhanced Card Animations */
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.handover-section {
+  animation: slideInUp 0.6s ease-out;
+}
+
+/* Enhanced Progress Bar */
+.handover-progress-container {
+  background: rgba(188, 158, 123, 0.1);
+  border-radius: 10px;
+  height: 8px;
+  overflow: hidden;
+  margin: 1rem 0;
+}
+
+.handover-progress-bar {
+  background: linear-gradient(135deg, #bc9e7b 0%, #8b6f47 100%);
+  height: 100%;
+  border-radius: 10px;
+  transition: width 0.3s ease;
+  position: relative;
+}
+
+.handover-progress-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Mobile responsive for installation guide */
+@media (max-width: 768px) {
+  .handover-install-steps {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .handover-install-step {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .handover-step-number {
+    align-self: center;
+  }
+  
+  .handover-install-content {
+    padding: 1.5rem;
+  }
+  
+  .handover-install-title {
+    font-size: 1.5rem;
+  }
+  
+  .handover-main-logo {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .handover-logo-container {
+    margin-bottom: 0.8rem;
+  }
 }
