@@ -10,13 +10,14 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'logo.svg', 'logo-modern.svg', 'logo-text.svg', 'png/*.png'],
       manifest: {
-        name: 'Handover App',
-        short_name: 'Handover',
-        description: 'A mobile-friendly, installable web app for property handover reports.',
+        name: 'Property Handover App',
+        short_name: 'Handover Pro',
+        description: 'Professional property handover reports with Team Mindlink - Your Trusted Partner in Property Transitions.',
         start_url: '.',
         display: 'standalone',
         background_color: '#f8f6f4',
         theme_color: '#bc9e7b',
+        id: 'handover-app-v3-2025',
         icons: [
           {
             src: '/png/120x120.png',
