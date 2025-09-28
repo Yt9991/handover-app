@@ -4,6 +4,20 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 // https://vite.dev/config/
 export default defineConfig({
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          pdf: ['jspdf'],
+          image: ['browser-image-compression', 'html2canvas'],
+          signature: ['react-signature-canvas'],
+          router: ['react-router-dom']
+        }
+      }
+    },
+    chunkSizeWarningLimit: 1000 // Increase limit to 1MB
+  },
   plugins: [
     react(),
     VitePWA({
