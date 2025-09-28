@@ -67,8 +67,11 @@ if (!self.define) {
     });
   };
 }
-define(['./workbox-54d0af47'], (function (workbox) { 'use strict';
+define(['./workbox-28d7c21f'], (function (workbox) { 'use strict';
 
+  workbox.setCacheNameDetails({
+    prefix: "handover-app-v3-2025-09-27"
+  });
   self.skipWaiting();
   workbox.clientsClaim();
 
@@ -82,7 +85,7 @@ define(['./workbox-54d0af47'], (function (workbox) { 'use strict';
     "revision": "3ca0b8505b4bec776b69afdba2768812"
   }, {
     "url": "index.html",
-    "revision": "0.brh1k7b4468"
+    "revision": "0.d20o5ftvr"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("index.html"), {

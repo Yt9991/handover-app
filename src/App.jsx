@@ -67,49 +67,71 @@ const defaultRooms = [
   },
 ];
 
+const createInitialFormState = () => ({
+  name: '',
+  cea: '',
+  mobile: '',
+  address: '',
+  date: today,
+  transactionType: '',
+  propertyType: '',
+  vendorPurchaserName: '',
+  purchaserName: '',
+  landlordTenantName: '',
+  tenantName: '',
+  inspectionDate: today,
+  inspectionTime: new Date().toTimeString().slice(0, 5),
+  propertySize: '',
+  numberOfRooms: '',
+  propertyCondition: '',
+  specialNotes: '',
+  recommendations: '',
+  agentCompany: '',
+  agentEmail: '',
+});
+
+const LOCAL_STORAGE_KEYS = {
+  agentData: 'handoverAgentData',
+  signatures: 'handoverSignatures',
+};
+
 function App() {
   // Form state
-  const [form, setForm] = useState({
-    name: '',
-    cea: '',
-    mobile: '',
-    address: '',
-    date: today,
-    transactionType: '',
-    propertyType: '',
-    vendorPurchaserName: '',
-    purchaserName: '',
-    landlordTenantName: '',
-    tenantName: '',
-    inspectionDate: today,
-    inspectionTime: new Date().toTimeString().slice(0, 5),
-    // New enhanced fields
-    propertySize: '',
-    numberOfRooms: '',
-    propertyCondition: '',
-    specialNotes: '',
-    recommendations: '',
-    agentCompany: '',
-    agentEmail: '',
-    // Removed template selection - using compact format only
+  const [form, setForm] = useState(() => {
+    const base = createInitialFormState();
+    try {
+      const savedAgentData = localStorage.getItem(LOCAL_STORAGE_KEYS.agentData);
+      if (savedAgentData) {
+        const agentData = JSON.parse(savedAgentData);
+        return {
+          ...base,
+          ...Object.fromEntries(
+            Object.entries(agentData).filter(([key]) => key in base)
+          )
+        };
+      }
+    } catch (error) {
+      console.error('Error accessing saved agent data:', error);
+    }
+    return base;
   });
   const [formTouched, setFormTouched] = useState({});
 
-  // Load agent details from local storage on component mount
+  // Load agent details and signatures from local storage on component mount
   useEffect(() => {
-    const savedAgentData = localStorage.getItem('handoverAgentData');
-    if (savedAgentData) {
-      try {
-        const agentData = JSON.parse(savedAgentData);
-        setForm(prev => ({
+    try {
+      const savedSignatures = localStorage.getItem(LOCAL_STORAGE_KEYS.signatures);
+      if (savedSignatures) {
+        const parsed = JSON.parse(savedSignatures);
+        setSignatures(prev => ({
           ...prev,
-          name: agentData.name || '',
-          cea: agentData.cea || '',
-          mobile: agentData.mobile || ''
+          ...parsed,
+          // Auto-load default agent signature if no current agent signature exists
+          agent: parsed.agent || parsed.agentDefault || prev.agent
         }));
-      } catch (error) {
-        console.error('Error loading agent data:', error);
       }
+    } catch (error) {
+      console.error('Error loading saved signatures:', error);
     }
   }, []);
 
@@ -183,12 +205,51 @@ function App() {
   }, [currentWordIndex, words]);
 
 
-  // Save agent details to local storage
+  // Save agent details to local storage - expanded to include more fields
   const saveAgentData = (name, value) => {
-    if (['name', 'cea', 'mobile'].includes(name)) {
-      const currentAgentData = JSON.parse(localStorage.getItem('handoverAgentData') || '{}');
-      const updatedAgentData = { ...currentAgentData, [name]: value };
-      localStorage.setItem('handoverAgentData', JSON.stringify(updatedAgentData));
+    const agentFields = ['name', 'cea', 'mobile', 'agentCompany', 'agentEmail'];
+    if (agentFields.includes(name)) {
+      try {
+        const currentAgentData = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEYS.agentData) || '{}');
+        const updatedAgentData = { ...currentAgentData, [name]: value };
+        localStorage.setItem(LOCAL_STORAGE_KEYS.agentData, JSON.stringify(updatedAgentData));
+      } catch (error) {
+        console.error('Error saving agent data:', error);
+      }
+    }
+  };
+
+  // Save all current agent data as defaults
+  const saveAsDefaults = () => {
+    // Validate required fields before saving
+    if (!form.name || !form.cea || !form.mobile) {
+      alert('❌ Please fill in required fields (Name, CEA, Mobile) before saving as defaults.');
+      return;
+    }
+
+    try {
+      const agentDefaults = {
+        name: form.name,
+        cea: form.cea,
+        mobile: form.mobile,
+        agentCompany: form.agentCompany,
+        agentEmail: form.agentEmail
+      };
+      localStorage.setItem(LOCAL_STORAGE_KEYS.agentData, JSON.stringify(agentDefaults));
+
+      // Also save current signature as default if it exists
+      if (signatures.agent) {
+        const currentSignatures = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEYS.signatures) || '{}');
+        localStorage.setItem(LOCAL_STORAGE_KEYS.signatures, JSON.stringify({
+          ...currentSignatures,
+          agentDefault: signatures.agent
+        }));
+      }
+
+      alert('✅ Your details have been saved as defaults for future reports!');
+    } catch (error) {
+      console.error('Error saving defaults:', error);
+      alert('❌ Failed to save defaults. Please try again.');
     }
   };
 
@@ -367,10 +428,20 @@ function App() {
     }
     
     if (sigRef.current) {
+      const dataUrl = sigRef.current.toDataURL();
       setSignatures(prev => ({
         ...prev,
-        [type]: sigRef.current.toDataURL()
+        [type]: dataUrl
       }));
+      try {
+        const stored = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEYS.signatures) || '{}');
+        localStorage.setItem(LOCAL_STORAGE_KEYS.signatures, JSON.stringify({
+          ...stored,
+          [type]: dataUrl,
+        }));
+      } catch (error) {
+        console.error('Error saving signature:', error);
+      }
     }
   };
 
@@ -385,24 +456,56 @@ function App() {
       default: return;
     }
     
-    if (sigRef.current) {
-      sigRef.current.clear();
-      setSignatures(prev => ({
-        ...prev,
-        [type]: ''
-      }));
+    if (!sigRef.current) return;
+
+    sigRef.current.clear();
+    setSignatures(prev => ({
+      ...prev,
+      [type]: ''
+    }));
+
+    try {
+      const stored = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEYS.signatures) || '{}');
+      delete stored[type];
+      localStorage.setItem(LOCAL_STORAGE_KEYS.signatures, JSON.stringify(stored));
+    } catch (error) {
+      console.error('Error clearing saved signature:', error);
     }
   };
 
   // Clear agent data from local storage
   const clearAgentData = () => {
-    localStorage.removeItem('handoverAgentData');
+    localStorage.removeItem(LOCAL_STORAGE_KEYS.agentData);
+
+    // Also clear default signature
+    try {
+      const currentSignatures = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEYS.signatures) || '{}');
+      delete currentSignatures.agentDefault;
+      localStorage.setItem(LOCAL_STORAGE_KEYS.signatures, JSON.stringify(currentSignatures));
+    } catch (error) {
+      console.error('Error clearing signature defaults:', error);
+    }
+
     setForm(prev => ({
       ...prev,
       name: '',
       cea: '',
-      mobile: ''
+      mobile: '',
+      agentCompany: '',
+      agentEmail: ''
     }));
+
+    // Clear agent signature
+    setSignatures(prev => ({
+      ...prev,
+      agent: ''
+    }));
+
+    if (agentSigRef.current) {
+      agentSigRef.current.clear();
+    }
+
+    alert('✅ Saved defaults have been cleared.');
   };
 
   // Reset all form data
@@ -424,7 +527,7 @@ function App() {
     });
     setInventory({});
     setPhotos([]);
-    setSignatures({ agent: null, vendor: null, purchaser: null, landlord: null, tenant: null });
+    setSignatures({ agent: '', vendor: '', purchaser: '', landlord: '', tenant: '' });
     setFormTouched({});
     setSubmitError('');
     
@@ -525,37 +628,120 @@ function App() {
       doc.setTextColor(66, 45, 42);
       let y = 100;
 
-      // Property & Salesperson Information
+      // Property & Salesperson Information with 2-column layout
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(12);
       doc.text('PROPERTY & SALESPERSON INFORMATION', 50, y + 20);
 
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
-      doc.text(`Property: ${form.address}`, 50, y + 40);
-      doc.text(`Type: ${form.propertyType || 'Not specified'} | Size: ${form.propertySize || 'Not specified'}`, 50, y + 55);
-      doc.text(`Salesperson: ${form.name} (CEA: ${form.cea}) | Mobile: ${form.mobile}`, 50, y + 70);
-      doc.text(`Date: ${form.date} | Inspection: ${form.inspectionDate} ${form.inspectionTime}`, 50, y + 85);
 
+      // Left column - Property Information
+      const leftColumnX = 50;
+      const rightColumnX = 320;
+      const columnWidth = 250;
+
+      let leftY = y + 40;
+      let rightY = y + 40;
+
+      // Property details (left column)
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.text('PROPERTY DETAILS', leftColumnX, leftY);
+      leftY += 15;
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      const addressLines = doc.splitTextToSize(`Address: ${form.address}`, columnWidth);
+      doc.text(addressLines, leftColumnX, leftY);
+      leftY += addressLines.length * 12;
+
+      doc.text(`Type: ${form.propertyType || 'Not specified'}`, leftColumnX, leftY);
+      leftY += 12;
+      doc.text(`Size: ${form.propertySize || 'Not specified'}`, leftColumnX, leftY);
+      leftY += 12;
+      doc.text(`Rooms: ${form.numberOfRooms || 'Not specified'}`, leftColumnX, leftY);
+      leftY += 12;
+      doc.text(`Condition: ${form.propertyCondition || 'Not specified'}`, leftColumnX, leftY);
+      leftY += 12;
+      doc.text(`Date Generated: ${form.date}`, leftColumnX, leftY);
+      leftY += 12;
+      doc.text(`Inspection: ${form.inspectionDate} ${form.inspectionTime}`, leftColumnX, leftY);
+      leftY += 15;
+
+      // Salesperson details (right column)
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.text('SALESPERSON DETAILS', rightColumnX, rightY);
+      rightY += 15;
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.text(`Name: ${form.name}`, rightColumnX, rightY);
+      rightY += 12;
+      doc.text(`CEA: ${form.cea}`, rightColumnX, rightY);
+      rightY += 12;
+      doc.text(`Mobile: ${form.mobile}`, rightColumnX, rightY);
+      rightY += 12;
+
+      if (form.agentCompany) {
+        doc.text(`Agency: ${form.agentCompany}`, rightColumnX, rightY);
+        rightY += 12;
+      }
+
+      if (form.agentEmail) {
+        const emailLines = doc.splitTextToSize(`Email: ${form.agentEmail}`, columnWidth);
+        doc.text(emailLines, rightColumnX, rightY);
+        rightY += emailLines.length * 12;
+      }
+
+      rightY += 5;
+
+      // Transaction parties (right column continued)
       if (form.transactionType === 'sale') {
-        doc.text(`Vendor: ${form.vendorPurchaserName || 'Not specified'} | Purchaser: ${form.purchaserName || 'Not specified'}`, 50, y + 100);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.text('TRANSACTION PARTIES', rightColumnX, rightY);
+        rightY += 15;
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.text(`Vendor: ${form.vendorPurchaserName || 'Not specified'}`, rightColumnX, rightY);
+        rightY += 12;
+        doc.text(`Purchaser: ${form.purchaserName || 'Not specified'}`, rightColumnX, rightY);
+        rightY += 12;
       } else if (form.transactionType === 'rental') {
-        doc.text(`Landlord: ${form.landlordTenantName || 'Not specified'} | Tenant: ${form.tenantName || 'Not specified'}`, 50, y + 100);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.text('TRANSACTION PARTIES', rightColumnX, rightY);
+        rightY += 15;
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.text(`Landlord: ${form.landlordTenantName || 'Not specified'}`, rightColumnX, rightY);
+        rightY += 12;
+        doc.text(`Tenant: ${form.tenantName || 'Not specified'}`, rightColumnX, rightY);
+        rightY += 12;
       }
 
-      if (form.propertyCondition) {
-        doc.text(`Condition: ${form.propertyCondition}`, 50, y + 115);
-      }
-
+      // Special notes spanning both columns if present
       if (form.specialNotes) {
-        const notesLines = doc.splitTextToSize(`Notes: ${form.specialNotes}`, pageWidth - 100);
-        doc.text(notesLines, 50, y + 130);
-      }
+        const maxY = Math.max(leftY, rightY);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.text('SPECIAL NOTES', leftColumnX, maxY + 15);
 
-      y += 220;
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        const notesLines = doc.splitTextToSize(form.specialNotes, pageWidth - 100);
+        doc.text(notesLines, leftColumnX, maxY + 30);
+        y = maxY + 30 + (notesLines.length * 12) + 20;
+      } else {
+        y = Math.max(leftY, rightY) + 20;
+      }
       setProgress(30);
 
-      // NEW SIMPLIFIED INVENTORY SECTION
+      // INVENTORY SECTION WITH 2-COLUMN LAYOUT
       if (['HDB', 'Condo', 'Landed'].includes(form.propertyType)) {
         if (y > 600) {
           doc.addPage();
@@ -570,22 +756,20 @@ function App() {
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(9);
 
-        // COMPLETELY NEW APPROACH - ITERATE THROUGH ALL ROOMS AND ITEMS DIRECTLY
+        // Column setup
+        const leftColumnX = 50;
+        const rightColumnX = 320;
+        const columnWidth = 240;
+        let leftColumnY = inventoryY;
+        let rightColumnY = inventoryY;
+        let currentColumn = 'left'; // Start with left column
         let totalCheckedItems = 0;
 
+        // Collect all rooms with checked items
+        const roomsWithItems = [];
         rooms.forEach((room) => {
-          // Check if we need a new page
-          if (inventoryY > pageHeight - 150) {
-            doc.addPage();
-            inventoryY = 60;
-          }
-
-          // Collect all checked items for this room
           const roomCheckedItems = [];
-
-          // Go through ALL items in the room
           room.items.forEach((itemName, itemIndex) => {
-            // Check if this item is checked in inventory
             const isChecked = inventory[room.key] && inventory[room.key][itemIndex] && inventory[room.key][itemIndex].checked;
             const qty = inventory[room.key] && inventory[room.key][itemIndex] ? inventory[room.key][itemIndex].qty || 1 : 1;
 
@@ -595,27 +779,73 @@ function App() {
             }
           });
 
-          // Only add room to PDF if it has checked items
           if (roomCheckedItems.length > 0) {
-            // Room title
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(10);
-            doc.text(`${room.name}:`, 50, inventoryY);
-            inventoryY += 15;
-
-            // List all checked items
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(9);
-            roomCheckedItems.forEach(item => {
-              if (inventoryY > pageHeight - 50) {
-                doc.addPage();
-                inventoryY = 60;
-              }
-              doc.text(`• ${item}`, 60, inventoryY);
-              inventoryY += 12;
+            roomsWithItems.push({
+              name: room.name,
+              items: roomCheckedItems
             });
+          }
+        });
 
-            inventoryY += 5; // Space between rooms
+        // Distribute rooms across columns
+        roomsWithItems.forEach((room, roomIndex) => {
+          let currentY = currentColumn === 'left' ? leftColumnY : rightColumnY;
+
+          // Check if room + items will fit in current column
+          const roomHeight = 15 + (room.items.length * 12) + 10; // title + items + spacing
+
+          // If it doesn't fit, switch column or new page
+          if (currentY + roomHeight > pageHeight - 120) { // More space for footer
+            if (currentColumn === 'left') {
+              // Try right column
+              currentColumn = 'right';
+              currentY = rightColumnY;
+
+              // If right column also doesn't have space, new page
+              if (currentY + roomHeight > pageHeight - 120) { // More space for footer
+                doc.addPage();
+                leftColumnY = rightColumnY = inventoryY = 60;
+                currentColumn = 'left';
+                currentY = leftColumnY;
+              }
+            } else {
+              // New page, start with left column
+              doc.addPage();
+              leftColumnY = rightColumnY = inventoryY = 60;
+              currentColumn = 'left';
+              currentY = leftColumnY;
+            }
+          }
+
+          const finalX = currentColumn === 'left' ? leftColumnX : rightColumnX;
+          const finalY = currentY;
+
+          // Room title
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(10);
+          doc.text(`${room.name}:`, finalX, finalY);
+          currentY = finalY + 15;
+
+          // List items
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(8);
+          room.items.forEach(item => {
+            const itemLines = doc.splitTextToSize(`• ${item}`, columnWidth);
+            doc.text(itemLines, finalX + 10, currentY);
+            currentY += itemLines.length * 10;
+          });
+
+          currentY += 10; // Space between rooms
+
+          // Update column heights
+          if (currentColumn === 'left') {
+            leftColumnY = currentY;
+            // Switch to right column for next room
+            currentColumn = 'right';
+          } else {
+            rightColumnY = currentY;
+            // Switch to left column for next room
+            currentColumn = 'left';
           }
         });
 
@@ -623,73 +853,89 @@ function App() {
         if (totalCheckedItems === 0) {
           doc.setFont('helvetica', 'normal');
           doc.setFontSize(9);
-          doc.text('No inventory items have been checked.', 50, inventoryY);
-          inventoryY += 20;
+          doc.text('No inventory items have been checked.', leftColumnX, inventoryY);
+          leftColumnY = inventoryY + 20;
         }
 
-        y = inventoryY + 20;
+        // Set final Y position
+        y = Math.max(leftColumnY, rightColumnY) + 20;
       }
 
       setProgress(50);
 
-      // Photos section (unchanged)
+      // Photos section with improved 2-column layout
       if (photos.length > 0) {
         if (y > 400) {
           doc.addPage();
           y = 40;
         }
 
-        doc.setFillColor(250, 248, 246);
-        doc.rect(40, y, pageWidth - 80, 200, 'FD');
-
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(12);
-        doc.text(`PHOTO DOCUMENTATION (${photos.length} photos)`, 50, y + 20);
+        doc.text(`PHOTO DOCUMENTATION (${photos.length} photos)`, 50, y);
 
-        let photoY = y + 40;
+        let photoY = y + 25;
         let photosPerPage = 0;
-        const maxPhotosPerPage = 6;
+        const maxPhotosPerPage = 10; // Increased from 6 to 10 for better utilization
+        const photoWidth = 90;
+        const photoHeight = 68;
+        const leftColumnX = 50;
+        const rightColumnX = 320;
+        const verticalSpacing = 85;
 
-        for (let i = 0; i < Math.min(photos.length, 12); i++) {
+        for (let i = 0; i < Math.min(photos.length, 20); i++) { // Increased from 12 to 20
           if (photosPerPage >= maxPhotosPerPage) {
             doc.addPage();
             photoY = 40;
             photosPerPage = 0;
           }
 
+          // Determine column position (left or right)
+          const isLeftColumn = (photosPerPage % 2) === 0;
+          const photoX = isLeftColumn ? leftColumnX : rightColumnX;
+          const currentPhotoY = photoY + Math.floor(photosPerPage / 2) * verticalSpacing;
+
           let imgData = photos[i].url;
           try {
             const file = await fetch(imgData).then(r => r.blob());
             const compressed = await imageCompression(file, {
-              maxWidthOrHeight: 200,
-              maxSizeMB: 0.05,
+              maxWidthOrHeight: 300,
+              maxSizeMB: 0.08,
               useWebWorker: true
             });
             imgData = await imageCompression.getDataUrlFromFile(compressed);
           } catch (e) { /* fallback */ }
 
-          doc.setDrawColor(188, 158, 123);
-          doc.rect(50, photoY, 60, 45, 'S');
-
           try {
-            doc.addImage(imgData, 'JPEG', 50, photoY, 60, 45);
+            doc.addImage(imgData, 'JPEG', photoX, currentPhotoY, photoWidth, photoHeight);
           } catch (e) {
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(8);
-            doc.text('Photo', 55, photoY + 25);
+            doc.text('Photo', photoX + 5, currentPhotoY + 35);
           }
 
           if (photos[i].comment) {
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(7);
-            doc.text(`Photo ${i + 1}: ${photos[i].comment}`, 120, photoY + 10, { maxWidth: 150 });
+            const commentLines = doc.splitTextToSize(`${i + 1}: ${photos[i].comment}`, photoWidth - 5);
+            doc.text(commentLines, photoX, currentPhotoY + photoHeight + 8);
+          } else {
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(7);
+            doc.text(`Photo ${i + 1}`, photoX, currentPhotoY + photoHeight + 8);
           }
 
-          photoY += 55;
           photosPerPage++;
+
+          // Move to next page if we've reached page limit and this completes a row
+          if (photosPerPage >= maxPhotosPerPage && !isLeftColumn) {
+            photoY = currentPhotoY + verticalSpacing;
+          }
         }
 
-        y += 220;
+        // Calculate final Y position based on number of rows used
+        const totalRows = Math.ceil(Math.min(photosPerPage, maxPhotosPerPage) / 2);
+        y = photoY + (totalRows * verticalSpacing) + 20;
       }
       setProgress(70);
 
@@ -698,9 +944,6 @@ function App() {
         doc.addPage();
         y = 40;
       }
-
-      doc.setFillColor(250, 248, 246);
-      doc.rect(40, y, pageWidth - 80, 220, 'FD');
 
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(14);
@@ -785,20 +1028,40 @@ function App() {
 
       setProgress(90);
 
-      // Footer
-      doc.setFont('helvetica', 'italic');
-      doc.setFontSize(10);
-      doc.setTextColor(107, 81, 63);
-      doc.text('Powered by Team Mindlink, #thepeoplesagency ©2025', 40, pageHeight - 20);
-
-      // Add page numbers
+      // Add footer with disclaimer and page numbers to all pages
       const totalPages = doc.internal.getNumberOfPages();
+      const footerY = pageHeight - 80; // Increased space from bottom
+
+      const disclaimerText = 'This property inventory handover report has been specially prepared by the salesperson for informational purposes only. While every effort has been made to ensure the accuracy and completeness of the information contained herein, no warranties or representations are made regarding its accuracy. The recipient is responsible for conducting their own verification and due diligence. The provider of this report accepts no liability for any errors, omissions, or losses arising from its use.';
+      const disclaimerLines = doc.splitTextToSize(disclaimerText, pageWidth - 80);
+
       for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
         doc.setPage(pageNum);
+
+        // Add disclaimer to each page (full width)
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(66, 45, 42);
+        doc.text('Disclaimer:', 40, footerY);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+        doc.setTextColor(107, 81, 63);
+        // Use full width for disclaimer text
+        const fullWidthDisclaimerLines = doc.splitTextToSize(disclaimerText, pageWidth - 80);
+        doc.text(fullWidthDisclaimerLines, 40, footerY + 10);
+
+        // Powered by line (full width)
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(188, 158, 123);
+        doc.text('Powered by Team Mindlink | #thepeoplesagency © 2025', 40, footerY + 10 + (fullWidthDisclaimerLines.length * 8) + 8);
+
+        // Page numbers below everything (centered)
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(8);
         doc.setTextColor(139, 111, 69);
-        doc.text(`Page ${pageNum} of ${totalPages}`, pageWidth - 70, pageHeight - 10, { align: 'right' });
+        doc.text(`Page ${pageNum} of ${totalPages}`, pageWidth / 2, pageHeight - 15, { align: 'center' });
       }
 
       setProgress(100);
@@ -1401,26 +1664,88 @@ function App() {
           )}
         </section>
 
-        {/* Reset Buttons */}
+        {/* Data Management Buttons */}
         <section className="handover-section handover-reset-card">
+          <h2 className="handover-section-title">Data Management</h2>
           <div className="handover-reset-buttons">
+            <button
+              type="button"
+              className="handover-reset-btn handover-save-defaults"
+              onClick={saveAsDefaults}
+              title="Save current salesperson details and signature as defaults for future reports"
+              style={{
+                backgroundColor: '#4CAF50',
+                color: 'white',
+                border: 'none',
+                padding: '12px 20px',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                marginRight: '10px',
+                marginBottom: '10px',
+                transition: 'background-color 0.3s'
+              }}
+              onMouseOver={(e) => e.target.style.backgroundColor = '#45a049'}
+              onMouseOut={(e) => e.target.style.backgroundColor = '#4CAF50'}
+            >
+              💾 Save as My Defaults
+            </button>
             <button
               type="button"
               className="handover-reset-btn handover-reset-agent"
               onClick={clearAgentData}
-              title="Clear saved salesperson details"
+              title="Clear saved salesperson defaults"
+              style={{
+                backgroundColor: '#ff9800',
+                color: 'white',
+                border: 'none',
+                padding: '12px 20px',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                marginRight: '10px',
+                marginBottom: '10px',
+                transition: 'background-color 0.3s'
+              }}
+              onMouseOver={(e) => e.target.style.backgroundColor = '#e68900'}
+              onMouseOut={(e) => e.target.style.backgroundColor = '#ff9800'}
             >
-              Clear Salesperson Data
+              🗑️ Clear My Defaults
             </button>
             <button
               type="button"
               className="handover-reset-btn handover-reset-all"
               onClick={resetAllData}
-              title="Reset all form data"
+              title="Reset current form only (keeps saved defaults)"
+              style={{
+                backgroundColor: '#f44336',
+                color: 'white',
+                border: 'none',
+                padding: '12px 20px',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                marginBottom: '10px',
+                transition: 'background-color 0.3s'
+              }}
+              onMouseOver={(e) => e.target.style.backgroundColor = '#d32f2f'}
+              onMouseOut={(e) => e.target.style.backgroundColor = '#f44336'}
             >
-              Reset All
+              🔄 Reset Current Form
             </button>
           </div>
+          <p style={{
+            fontSize: '12px',
+            color: '#666',
+            marginTop: '10px',
+            textAlign: 'center',
+            lineHeight: '1.4'
+          }}>
+            💡 <strong>Tip:</strong> Save your details as defaults to avoid retyping them for each report. Your data is stored securely on your device.
+          </p>
         </section>
 
         {/* Submit Button */}
@@ -1541,8 +1866,24 @@ function App() {
       </section>
 
       {/* Footer */}
-      <footer className="handover-footer">
-        Powered by Team Mindlink, #thepeoplesagency ©2025
+      <footer className="handover-footer" style={{
+        fontSize: '11px',
+        lineHeight: '1.5',
+        padding: '30px 20px',
+        textAlign: 'center',
+        color: '#666',
+        borderTop: '1px solid #eee',
+        marginTop: '40px'
+      }}>
+        <div style={{ marginBottom: '15px', fontWeight: '600', color: '#333' }}>
+          Disclaimer:
+        </div>
+        <div style={{ marginBottom: '20px', maxWidth: '800px', margin: '0 auto' }}>
+          This property inventory handover report has been specially prepared by the salesperson for informational purposes only. While every effort has been made to ensure the accuracy and completeness of the information contained herein, no warranties or representations are made regarding its accuracy. The recipient is responsible for conducting their own verification and due diligence. The provider of this report accepts no liability for any errors, omissions, or losses arising from its use.
+        </div>
+        <div style={{ fontWeight: '600', color: '#bc9e7b' }}>
+          Powered by Team Mindlink | #thepeoplesagency © 2025
+        </div>
       </footer>
     </div>
   );
